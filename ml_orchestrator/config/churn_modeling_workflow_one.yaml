@@ -4,12 +4,11 @@ training:
   test_size: 0.3
   sample_weights: True
   model_1:
-    target_accuracy: 0.0628
-    target_direction: 0.8098
+    target_accuracy: 0.8098
     scaler: "passthrough"
     model_name: "histgradientboosting"
     params:
-      loss: "squared_error"
+      loss: "log_loss"
       learning_rate: 0.0090
       max_iter: 323
       max_leaf_nodes: 49
@@ -17,36 +16,23 @@ training:
       min_samples_leaf: 37
       l2_regularization: 0.0047
   model_2:
-    target_accuracy: 0.0626
-    target_direction: 0.8276
+    target_accuracy: 0.8276
     scaler: "robustscaler"
     model_name: "kneighbors"
     params:
-        n_neighbors: 3
-        weights: "distance"
-        leaf_size: 26
-        p: 2
+      n_neighbors: 3
+      weights: "distance"
+      leaf_size: 26
+      p: 2
   model_3:
-    target_accuracy: 0.0521
-    target_direction: 0.8238
+    target_accuracy: 0.8238
     scaler: "passthrough"
     model_name: "extratrees"
     params:
-        n_estimators: 376
-        max_depth: 25
-        min_samples_split: 6
-        min_samples_leaf: 2
-        max_features: "sqrt"
+      n_estimators: 376
+      max_depth: 25
+      min_samples_split: 6
+      min_samples_leaf: 2
+      max_features: "sqrt"
 serving:
-  join_column:
-    levels:
-      msa:
-        name: "MSA_CBSA_FIPS_CODE"
-        type: "VARCHAR(16777216)"
-      county:
-        name: "COUNTY_GEO_ID"
-        type: "VARCHAR(16777216)"
-  prediction_column:
-    name: "AREA_MEDIAN_INCOME_PCT_CHG"
-    type: "FLOAT"
-  table_name: "ML_AREA_MEDIAN_INCOME_EXPORT"
+  pass: true
