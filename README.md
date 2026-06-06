@@ -21,7 +21,7 @@
     ```bash
      dagster dev
     ```
-   Open http://localhost:3000 in your browser to see the ml-orchestrator.
+   Open http://127.0.0.1:35695 in your browser to see the ml-orchestrator.
 
 ### Development
 

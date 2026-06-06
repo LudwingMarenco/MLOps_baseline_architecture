@@ -62,3 +62,4 @@ tmp*/
 data/
 models/
 *.env
+mlopsenv/

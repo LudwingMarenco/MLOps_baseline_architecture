@@ -10,7 +10,8 @@ from .assets import (
 )
 
 # from .jobs import all_jobs
-# from .resources import s3_aws_resource, snowflake_resource
+from .resources import duckdb_resource
+
 # from .schedules import all_schedules
 # from .sensors import all_sensors
 
@@ -34,5 +35,5 @@ defs = Definitions(
     # jobs=all_jobs,
     # schedules=all_schedules,
     # sensors=all_sensors,
-    # resources={**snowflake_resource, **s3_aws_resource},
+    resources={**duckdb_resource},
 )

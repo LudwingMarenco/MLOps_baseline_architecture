@@ -1,1 +1,1 @@
-area_median_params = "area_median_params.yaml"
+churn_modeling_workflow = "churn_modeling_workflow.yaml"
