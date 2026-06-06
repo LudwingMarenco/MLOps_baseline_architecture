@@ -19,27 +19,14 @@ def generate_keys(model_params: str, asset_name: str) -> list:
 
 
 def get_parameters(filename: str):
-
     filename = os.path.join("ml_orchestrator/config/", filename)
-
     with open(filename, "r") as file:
         config = yaml.safe_load(file)
 
-    validation_rules = {
-        "params": {"data", "training", "serving"},
-    }
+    missing_fields = {"data", "training", "serving"} - config.keys()
+    if missing_fields:
+        raise ValueError(f"Missing required fields: {missing_fields}")
 
-    for key, required_fields in validation_rules.items():
-        if key in filename:
-            missing_fields = required_fields - config.keys()
-            if missing_fields:
-                raise ValueError(
-                    f"Missing required fields for parameters file: {missing_fields}"
-                )
-        else:
-            raise ValueError(
-                f"Parameters filename must contain {validation_rules.keys()} suffix"
-            )
     return config
 
 

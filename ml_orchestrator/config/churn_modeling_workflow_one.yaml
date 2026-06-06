@@ -1,21 +1,7 @@
 data:
-  train_query: "area_median_data_train.sql"
-  serving_query: "area_median_data_serving.sql"
-  chunk_size: 10000
-  levels:
-    msa:
-      context:
-        tables:
-          name: msa_geo_mart
-          id_col: msa_cbsa_fips_code
-    county:
-      context:
-        tables:
-          name: county_geo_mart
-          id_col: county_geo_id
+  train_query: "churn_modeling_workflow_one.sql"
 training:
   test_size: 0.3
-  time_lag: 1
   sample_weights: True
   model_1:
     target_accuracy: 0.0628
