@@ -1,5 +1,20 @@
 data:
-  train_query: "churn_modeling_workflow_one.sql"
+  train_query: "churn_modeling_workflow_one_train.sql"
+  serving_query: "churn_modeling_workflow_one_serving.sql"
+  chunk_size: 10000
+  levels:
+    0923_1737:
+      context:
+        tables:
+          name: 0923_1737
+    1023_2038:
+      context:
+        tables:
+          name: 1023_2038
+    1127_1528:
+      context:
+        tables:
+          name: 1127_1528
 training:
   test_size: 0.3
   sample_weights: True

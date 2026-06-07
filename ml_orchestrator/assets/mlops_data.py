@@ -1,4 +1,4 @@
-from utils.data_fetcher import DuckDBDataFetcher
+from utils.data_fetcher import DuckDBDataFetcher, DuckDBDynamicChunkedFetcher
 
 from . import mlops_constants
 
@@ -8,3 +8,8 @@ data_client_one = DuckDBDataFetcher(
     group_name="churn_modeling_workflow_one",
     train=True,
 ).create_asset()
+
+data_client_one_serving_data = DuckDBDynamicChunkedFetcher(
+    data_params=mlops_constants.churn_modeling_workflow_one,
+    op_name="data_client_one_serving_data",
+).create_op()
