@@ -1,4 +1,3 @@
-import json
 import os
 
 import pandas as pd
@@ -152,15 +151,14 @@ class DuckDBPartitionedDataFetcher:
             tags={"domain": "ML", "pii": "false"},
             partitions_def=self.partition_level,
             group_name=self.group_name,
-            kinds={"python", "snowflake"},
+            kinds={"python", "duckdb"},
         )
         def _asset(
             context: AssetExecutionContext,
             duckdb: ResourceParam[DuckDBResource],
         ) -> Output[pd.DataFrame]:
             """
-            Asset that dynamically fetches a batch of data from Snowflake
-            based on partition key.
+            Asset that dynamically fetches data based partitions.
             """
 
             parameters = get_parameters(self.data_params)

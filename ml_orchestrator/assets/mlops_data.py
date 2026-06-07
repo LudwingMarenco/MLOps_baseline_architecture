@@ -20,9 +20,9 @@ data_client_one_serving_data = DuckDBDynamicChunkedFetcher(
 ).create_op()
 
 
-data_client_one_monitor = DuckDBPartitionedDataFetcher(
+data_client_one_monitor_data = DuckDBPartitionedDataFetcher(
     data_params=mlops_constants.churn_modeling_workflow_one,
-    asset_name="data_client_one_monitor",
+    asset_name="data_client_one_monitor_data",
     partition_level=client_one_serving_partition,
     group_name="churn_modeling_workflow_one_monitor",
 ).create_asset()
