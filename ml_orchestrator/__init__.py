@@ -1,8 +1,7 @@
 from dagster import Definitions, load_assets_from_modules
 
 from .assets import mlops_data, mlops_registry, mlops_training, mlops_transformation
-
-# from .jobs import all_jobs
+from .jobs import all_jobs
 from .resources import duckdb_resource, local_storage_resource
 
 # from .schedules import all_schedules
@@ -20,7 +19,7 @@ defs = Definitions(
         *training_assets,
         *registry_assets,
     ],
-    # jobs=all_jobs,
+    jobs=all_jobs,
     # schedules=all_schedules,
     # sensors=all_sensors,
     resources={**duckdb_resource, **local_storage_resource},
