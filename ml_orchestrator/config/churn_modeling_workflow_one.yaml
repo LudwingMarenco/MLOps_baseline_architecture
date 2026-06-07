@@ -67,3 +67,15 @@ serving:
     type: "INT"
   table_name: "ML_PREDICTION"
   output_path: "data/predictions"
+monitoring:
+  null_rate:
+    amber: 0.01
+    red: 0.05
+  drift_pvalue:
+    amber: 0.05
+    red: 0.01
+  prediction_drift:
+    amber: 0.05
+    red: 0.15
+  reference_path: "data/reference/training_reference.json"
+  output_path: "data/monitoring"
