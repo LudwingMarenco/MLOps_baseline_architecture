@@ -59,7 +59,7 @@ class DuckDBDataFetcher:
                         parameters["serving"]["chunk_size"]
                     )
                     data = pd.DataFrame(
-                        data, columns=[desc[0] for desc in conn.description]
+                        data, columns=[desc[0].upper() for desc in conn.description]
                     )
 
             if data.empty:
@@ -108,7 +108,7 @@ class DuckDBDynamicChunkedFetcher:
 
             with duckdb.get_connection() as conn:
                 result = conn.execute(query)
-                columns = [desc[0] for desc in result.description]
+                columns = [desc[0].upper() for desc in result.description]
                 chunk_id = 0
                 run = True
 

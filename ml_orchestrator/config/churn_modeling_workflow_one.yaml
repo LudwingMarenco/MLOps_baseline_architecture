@@ -3,23 +3,23 @@ data:
   serving_query: "churn_modeling_workflow_one_serving.sql"
   chunk_size: 10000
   levels:
-    0923_1737:
+    "0923_1737":
       context:
         tables:
-          name: 0923_1737
-    1023_2038:
+          name: "0923_1737"
+    "1023_2038":
       context:
         tables:
-          name: 1023_2038
-    1127_1528:
+          name: "1023_2038"
+    "1127_1528":
       context:
         tables:
-          name: 1127_1528
+          name: "1127_1528"
 training:
   test_size: 0.3
   sample_weights: True
   model_1:
-    target_accuracy: 0.8098
+    target_accuracy: 0.7394
     scaler: "passthrough"
     model_name: "histgradientboosting"
     params:
@@ -31,16 +31,17 @@ training:
       min_samples_leaf: 37
       l2_regularization: 0.0047
   model_2:
-    target_accuracy: 0.8276
-    scaler: "robustscaler"
-    model_name: "kneighbors"
+    target_accuracy: 0.6789
+    scaler: "passthrough"
+    model_name: "randomforest"
     params:
-      n_neighbors: 3
-      weights: "distance"
-      leaf_size: 26
-      p: 2
+      n_estimators: 200
+      max_depth: 10
+      min_samples_leaf: 20
+      max_features: "sqrt"
+      class_weight: "balanced"
   model_3:
-    target_accuracy: 0.8238
+    target_accuracy: 0.7079
     scaler: "passthrough"
     model_name: "extratrees"
     params:
@@ -51,8 +52,16 @@ training:
       max_features: "sqrt"
 serving:
   join_column:
-    name: "MERCHANT_ID"
-    type: "VARCHAR(16777216)"
+    levels:
+      "0923_1737":
+        name: "MERCHANT_ID"
+        type: "VARCHAR(16777216)"
+      "1023_2038":
+        name: "MERCHANT_ID"
+        type: "VARCHAR(16777216)"
+      "1127_1528":
+        name: "MERCHANT_ID"
+        type: "VARCHAR(16777216)"
   prediction_column:
     name: "PREDICTION"
     type: "INT"

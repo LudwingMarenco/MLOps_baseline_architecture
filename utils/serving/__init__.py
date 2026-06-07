@@ -1,8 +1,8 @@
-import io
+import json
 import os
 from collections import Counter
+from datetime import datetime
 
-import joblib
 import numpy as np
 import pandas as pd
 from dagster import (
@@ -20,13 +20,13 @@ from dagster import (
     op,
     sensor,
 )
-from dagster_duckdb import DuckDBResource
 
 from ml_orchestrator.resources import LocalStorageResource
 from utils.parameters import (
     get_latest_partition_materialization,
     get_parameters,
 )
+from utils.persistence import get_gto_info
 
 
 def normalize_predictions(pred):
@@ -136,224 +136,13 @@ class ModelChunkedServing:
             name=self.op_name,
             ins={"data": In(pd.DataFrame)},
             tags={"domain": "ML", "pii": "false"},
-            out=Out(dict),
+            out=Out(None),
         )
         def _op(
             context: OpExecutionContext,
             data: pd.DataFrame,
             model_persistor: ResourceParam[LocalStorageResource],
-            duckdb: ResourceParam[DuckDBResource],
-        ) -> dict:
-            """
-            Operation for model serving in chunked data. Predictions are written to parquet.
-            """
-            parameters = get_parameters(self.serving_params)
-            join_config = parameters["serving"]["join_column"]
-            prediction_column = parameters["serving"]["prediction_column"]["name"]
-            prediction_column_type = parameters["serving"]["prediction_column"]["type"]
-
-            mapping_key = context.get_mapping_key()
-
-            if mapping_key.startswith("chunk_"):
-                # Non-partitioned case
-                level = None
-                chunk_id = mapping_key.replace("chunk_", "")
-            elif mapping_key.startswith("level_"):
-                # Partitioned case
-                try:
-                    parts = mapping_key.split("_")
-                    # Expected: ["level", "<level>", "chunk", "<id>"]
-                    if len(parts) < 4 or parts[2] != "chunk":
-                        raise ValueError(f"Invalid mapping_key format: {mapping_key}")
-                    level = "_".join(parts[1:-2]) if len(parts) > 4 else parts[1]
-                    chunk_id = parts[-1]
-                except Exception:
-                    raise ValueError(f"Invalid mapping_key format: {mapping_key}")
-            else:
-                raise ValueError(f"Unknown mapping_key format: {mapping_key}")
-
-            if level:
-                try:
-                    join_column = join_config["levels"][level]["name"]
-                    join_column_type = join_config["levels"][level]["type"]
-                except KeyError:
-                    raise ValueError(f"Missing join_column config for level: {level}")
-            else:
-                join_column = join_config["name"]
-                join_column_type = join_config["type"]
-
-            client = model_persistor.get_client()
-            serving_data = data.loc[:, data.columns != join_column].values
-            predictions = []
-
-            asset_key = AssetKey(self.artifact_model_asset)
-            asset_key_aux = AssetKey(self.accuracy_model_asset)
-            tolerances = []
-            tasks = []
-            targets = []
-
-            if not hasattr(context, "models_cache"):
-                context.models_cache = {}
-
-            models_cache = context.models_cache
-
-            for partition in self.model_partitions.get_partition_keys():
-                materialization = get_latest_partition_materialization(
-                    context, asset_key, partition
-                )
-                materialization_aux = get_latest_partition_materialization(
-                    context, asset_key_aux, partition
-                )
-
-                if materialization is None:
-                    context.log.info(
-                        f"No accuracy materialization found for {partition}"
-                    )
-                else:
-                    metadata = materialization.asset_materialization.metadata
-                    metadata_aux = materialization_aux.asset_materialization.metadata
-                    artifact_path = metadata["artifact_path"].value
-                    tolerances.append(metadata_aux["model_accuracy"].value)
-                    tasks.append(metadata["task"].value)
-                    targets.append(metadata["target"].value)
-
-                    if partition not in models_cache:
-                        context.log.info(
-                            f"Loading model for partition {partition} from registry"
-                        )
-                        bucket = artifact_path.split("/")[2]
-                        model_name = "/".join(artifact_path.split("/")[3:])
-                        response = client.get_object(Bucket=bucket, Key=model_name)
-                        buffer = io.BytesIO(response["Body"].read())
-                        model = joblib.load(buffer)
-                        models_cache[partition] = model
-                    else:
-                        context.log.info(f"Using cached model {partition}")
-                        model = models_cache[partition]
-
-                    pred = model.predict(serving_data)
-                    predictions.append(normalize_predictions(pred))
-
-            if not tasks:
-                raise RuntimeError("No valid model metadata found for aggregation")
-
-            task = most_common(tasks)
-            tolerance = mean_tolerance(tolerances)
-            target = targets[0]
-            output_names = normalize_output_names(target)
-
-            predictions = np.stack(predictions, axis=0)
-            final_predictions = aggregate_predictions(predictions, task, tolerance)
-
-            print(final_predictions)
-            if final_predictions.shape[1] == 1:
-                final_predictions = final_predictions[:, 0]
-
-            result = pd.DataFrame({join_column: data[join_column].values})
-
-            if len(output_names) == 1:
-                result[prediction_column] = final_predictions
-                columns_metadata = [prediction_column]
-            else:
-                if len(output_names) != final_predictions.shape[1]:
-                    raise ValueError(
-                        f"Number of output names ({len(output_names)}) "
-                        f"does not match model outputs ({final_predictions.shape[1]})"
-                    )
-                columns_metadata = []
-                for name, values in zip(output_names, final_predictions.T):
-                    column_name = f"{prediction_column}_{name}"
-                    result[column_name] = values
-                    columns_metadata.append(column_name)
-
-            if level:
-                context.log.info(
-                    f"Prediction completed for level={level}, chunk={chunk_id} with {len(result)} rows."
-                )
-            else:
-                context.log.info(
-                    f"Prediction completed for chunk={chunk_id} with {len(result)} rows."
-                )
-
-            should_clean = str(chunk_id) == "00000"
-            base_table = parameters["serving"]["table_name"]
-
-            if level:
-                table_name = f"{base_table}_{level}".upper()
-            else:
-                table_name = base_table.upper()
-
-            with snowflake_client.get_connection() as conn:
-                table_name = table_name
-                database = snowflake_client.database
-                schema = snowflake_client.schema_
-                if should_clean:
-                    with conn.cursor() as cursor:
-                        prediction_columns_ddl = ",\n".join(
-                            f"{col} {prediction_column_type}"
-                            for col in columns_metadata
-                        )
-                        create_query = f"""
-                                        CREATE OR REPLACE TABLE {schema}.{table_name} (
-                                        {join_column} {join_column_type},
-                                        {prediction_columns_ddl});
-                                        """
-                        context.log.info(
-                            f"Creating or replacing table {table_name} at {schema} schema."
-                        )
-                        cursor.execute(create_query)
-
-                success, number_chunks, rows_inserted, output = write_pandas(
-                    conn,
-                    result,
-                    table_name=table_name,
-                    database=database,
-                    schema=schema,
-                    auto_create_table=False,
-                    overwrite=False,
-                    quote_identifiers=False,
-                )
-            if success:
-                context.log.info(
-                    f"Writing {rows_inserted} records to {table_name}, number chunks {number_chunks}"
-                )
-
-            return {
-                "table_name": table_name,
-                "prediction_column": columns_metadata,
-                "join_column": join_column,
-            }
-
-        return _op
-
-
-class ModelChunkedServing:
-    def __init__(
-        self,
-        serving_params: str,
-        artifact_model_asset: str,
-        accuracy_model_asset: str,
-        model_partitions: PartitionsDefinition,
-        op_name: str,
-    ) -> None:
-        self.serving_params = serving_params
-        self.artifact_model_asset = artifact_model_asset
-        self.accuracy_model_asset = accuracy_model_asset
-        self.model_partitions = model_partitions
-        self.op_name = op_name
-
-    def create_op(self):
-        @op(
-            name=self.op_name,
-            ins={"data": In(pd.DataFrame)},
-            tags={"domain": "ML", "pii": "false"},
-            out=Out(dict),
-        )
-        def _op(
-            context: OpExecutionContext,
-            data: pd.DataFrame,
-            model_persistor: ResourceParam[LocalStorageResource],
-        ) -> dict:
+        ) -> None:
             """
             Operation for model serving in chunked data. Predictions are written to parquet.
             """
@@ -367,14 +156,9 @@ class ModelChunkedServing:
                 level = None
                 chunk_id = mapping_key.replace("chunk_", "")
             elif mapping_key.startswith("level_"):
-                try:
-                    parts = mapping_key.split("_")
-                    if len(parts) < 4 or parts[2] != "chunk":
-                        raise ValueError(f"Invalid mapping_key format: {mapping_key}")
-                    level = "_".join(parts[1:-2]) if len(parts) > 4 else parts[1]
-                    chunk_id = parts[-1]
-                except Exception:
-                    raise ValueError(f"Invalid mapping_key format: {mapping_key}")
+                # remove "level_" prefix then split on "_chunk_" from the right
+                without_prefix = mapping_key[len("level_") :]
+                level, chunk_id = without_prefix.rsplit("_chunk_", 1)
             else:
                 raise ValueError(f"Unknown mapping_key format: {mapping_key}")
 
@@ -482,11 +266,30 @@ class ModelChunkedServing:
                     f"Written to {output_file}"
                 )
 
-            return {
-                "output_file": output_file,
+            model_version, model_stage = get_gto_info(context.partition_key)
+
+            metadata = {
+                "batch_id": level,
+                "chunk_id": chunk_id,
+                "run_id": context.run_id,
+                "run_timestamp": datetime.now().isoformat(),
+                "model_version": model_version,
+                "model_stage": model_stage,
+                "partition_key": context.partition_key,
+                "row_count": len(result),
                 "prediction_column": columns_metadata,
                 "join_column": join_column,
+                "output_file": output_file,
             }
+            metadata_file = os.path.join(
+                output_dir, f"{table_name}_chunk_{chunk_id}_metadata.json"
+            )
+            with open(metadata_file, "w") as f:
+                json.dump(metadata, f, indent=2)
+
+            context.log.info(f"Metadata written to {metadata_file}")
+
+            return None
 
         return _op
 
