@@ -325,7 +325,7 @@ def conditional_training(
     @sensor(
         name=sensor_name,
         job=job,
-        minimum_interval_seconds=3600,
+        minimum_interval_seconds=300,
         default_status=DefaultSensorStatus.STOPPED,
         description="Trigger training if threshold accuracy condition is not met for each a model partition.",
     )
@@ -335,6 +335,7 @@ def conditional_training(
         asset_key = AssetKey(accuracy_model_asset)
 
         run_requests = []
+        skip_reasons = []
 
         for partition in model_partitions.get_partition_keys():
 
@@ -391,6 +392,9 @@ def conditional_training(
                             )
                         )
                     else:
+                        skip_reasons.append(
+                            f"{partition} (accuracy={model_accuracy}, target={target_accuracy})"
+                        )
                         context.log.info(
                             f"Accuracy: {model_accuracy}, Target: {target_accuracy}, "
                             f"Direction Accuracy: {direction_accuracy}, Direction Target: {target_accuracy}, "
@@ -400,7 +404,9 @@ def conditional_training(
         if run_requests:
             yield from run_requests
         else:
-            yield SkipReason("No partitions require retraining at this time.")
+            yield SkipReason(
+                f"No partitions require retraining. Skipped: {', '.join(skip_reasons)}"
+            )
 
     return _sensor
 
