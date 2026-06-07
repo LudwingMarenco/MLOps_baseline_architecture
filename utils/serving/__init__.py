@@ -266,7 +266,9 @@ class ModelChunkedServing:
                     f"Written to {output_file}"
                 )
 
-            model_version, model_stage = get_gto_info(context.partition_key)
+            model_version, model_stage = get_gto_info(
+                self.model_partitions.get_partition_keys()[0]
+            )
 
             metadata = {
                 "batch_id": level,

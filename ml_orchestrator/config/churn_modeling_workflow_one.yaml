@@ -1,7 +1,8 @@
 data:
   train_query: "churn_modeling_workflow_one_train.sql"
   serving_query: "churn_modeling_workflow_one_serving.sql"
-  chunk_size: 10000
+  monitor_query: "churn_modeling_workflow_one_monitor.sql"
+  chunk_size: 30000
   levels:
     "0923_1737":
       context:
@@ -67,7 +68,7 @@ serving:
     type: "INT"
   table_name: "ML_PREDICTION"
   output_path: "data/predictions"
-monitoring:
+monitor:
   null_rate:
     amber: 0.01
     red: 0.05
@@ -77,5 +78,4 @@ monitoring:
   prediction_drift:
     amber: 0.05
     red: 0.15
-  reference_path: "data/reference/training_reference.json"
   output_path: "data/monitoring"

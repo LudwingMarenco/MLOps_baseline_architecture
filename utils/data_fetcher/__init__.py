@@ -9,6 +9,7 @@ from dagster import (
     MetadataValue,
     OpExecutionContext,
     Output,
+    PartitionsDefinition,
     ResourceParam,
     asset,
     op,
@@ -64,7 +65,7 @@ class DuckDBDataFetcher:
 
             if data.empty:
                 raise ValueError("No data returned from the query.")
-
+            data.columns = data.columns.str.upper()
             data = data[sorted(data.columns)]
             context.log.info(f"Fetched {len(data)} rows")
             return Output(
@@ -108,7 +109,7 @@ class DuckDBDynamicChunkedFetcher:
 
             with duckdb.get_connection() as conn:
                 result = conn.execute(query)
-                columns = [desc[0].upper() for desc in result.description]
+                columns = [desc[0] for desc in result.description]
                 chunk_id = 0
                 run = True
 
@@ -118,6 +119,7 @@ class DuckDBDynamicChunkedFetcher:
                         run = False
                     else:
                         data_chunked = pd.DataFrame(data, columns=columns)
+                        data_chunked.columns = data_chunked.columns.str.upper()
                         data_chunked = data_chunked[sorted(data_chunked.columns)]
                         context.log.info(
                             f"Fetched chunk {chunk_id} with {len(data_chunked)} rows"
@@ -129,3 +131,65 @@ class DuckDBDynamicChunkedFetcher:
                         chunk_id += 1
 
         return _op
+
+
+class DuckDBPartitionedDataFetcher:
+    def __init__(
+        self,
+        data_params: str,
+        asset_name: str,
+        partition_level: PartitionsDefinition,
+        group_name: str,
+    ) -> None:
+        self.data_params = data_params
+        self.asset_name = asset_name
+        self.partition_level = partition_level
+        self.group_name = group_name
+
+    def create_asset(self):
+        @asset(
+            name=self.asset_name,
+            tags={"domain": "ML", "pii": "false"},
+            partitions_def=self.partition_level,
+            group_name=self.group_name,
+            kinds={"python", "snowflake"},
+        )
+        def _asset(
+            context: AssetExecutionContext,
+            duckdb: ResourceParam[DuckDBResource],
+        ) -> Output[pd.DataFrame]:
+            """
+            Asset that dynamically fetches a batch of data from Snowflake
+            based on partition key.
+            """
+
+            parameters = get_parameters(self.data_params)
+            level = context.partition_key
+            sql_file = parameters["data"]["monitor_query"]
+            sql_path = os.path.join("ml_orchestrator/queries/", sql_file)
+
+            with open(sql_path, "r") as file:
+                sql_template = file.read()
+
+            template = Template(sql_template)
+            values = parameters["data"]["levels"][level]["context"]
+            query = template.render(**values)
+
+            with duckdb.get_connection() as conn:
+                data = conn.execute(query).df()
+
+            if data.empty:
+                raise ValueError("No data returned from the query.")
+
+            data.columns = data.columns.str.upper()
+            data = data[sorted(data.columns)]
+            context.log.info(f"Fetched {len(data)} rows")
+            return Output(
+                data,
+                metadata={
+                    "n_samples": MetadataValue.int(data.shape[0]),
+                    "n_features": MetadataValue.int(data.shape[1]),
+                },
+            )
+
+        return _asset

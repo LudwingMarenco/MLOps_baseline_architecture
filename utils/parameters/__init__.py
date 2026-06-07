@@ -23,7 +23,7 @@ def get_parameters(filename: str):
     with open(filename, "r") as file:
         config = yaml.safe_load(file)
 
-    missing_fields = {"data", "training", "serving"} - config.keys()
+    missing_fields = {"data", "training", "serving", "monitor"} - config.keys()
     if missing_fields:
         raise ValueError(f"Missing required fields: {missing_fields}")
 
