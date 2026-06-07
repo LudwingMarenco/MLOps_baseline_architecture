@@ -50,4 +50,11 @@ training:
       min_samples_leaf: 2
       max_features: "sqrt"
 serving:
-  pass: true
+  join_column:
+    name: "MERCHANT_ID"
+    type: "VARCHAR(16777216)"
+  prediction_column:
+    name: "PREDICTION"
+    type: "INT"
+  table_name: "ML_PREDICTION"
+  output_path: "data/predictions"

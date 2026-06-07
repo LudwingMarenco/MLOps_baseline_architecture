@@ -14,6 +14,7 @@ from dagster import (
     MetadataValue,
     Output,
     PartitionsDefinition,
+    ResourceParam,
     asset,
     define_asset_job,
 )
@@ -86,7 +87,7 @@ class SaveMLArtifact:
             context: AssetExecutionContext,
             model,
             quality_model,
-            model_persistor: LocalStorageResource,
+            model_persistor: ResourceParam[LocalStorageResource],
         ) -> Output[None]:
             """
             Asset to persist trained model.

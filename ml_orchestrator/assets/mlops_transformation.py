@@ -1,5 +1,15 @@
 import pandas as pd
-from dagster import AssetExecutionContext, AssetIn, MetadataValue, Output, asset
+from dagster import (
+    AssetExecutionContext,
+    AssetIn,
+    In,
+    MetadataValue,
+    OpExecutionContext,
+    Out,
+    Output,
+    asset,
+    op,
+)
 
 from utils.data_processing import TrainTestDataAsset
 
@@ -51,3 +61,23 @@ data_client_one_splitting_data = TrainTestDataAsset(
     model_partitions=data_client_one_partition,
     group_name="churn_modeling_workflow_one",
 ).create_asset()
+
+
+@op(
+    ins={"data": In(pd.DataFrame)},
+    tags={"domain": "ML", "pii": "false"},
+    out=Out(pd.DataFrame),
+)
+def data_client_one_transform_data(
+    context: OpExecutionContext, data: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Operation for transforming serving data for client one.
+    """
+
+    rows_before = len(data)
+    data = data.dropna()
+    rows_dropped = rows_before - len(data)
+    context.log.info(f"Dropped {rows_dropped} rows with null values")
+
+    return data

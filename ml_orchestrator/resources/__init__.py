@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+import joblib
 from dagster import ConfigurableResource
 from dagster_duckdb import DuckDBResource
 
@@ -53,6 +54,10 @@ class LocalStorageResource(ConfigurableResource):
                 raise subprocess.CalledProcessError(
                     result.returncode, result.args, result.stdout, result.stderr
                 )
+
+    def load(self, artifact_path: str):
+        with open(artifact_path, "rb") as f:
+            return joblib.load(f)
 
 
 local_storage_resource = {"model_persistor": LocalStorageResource(base_path="models")}
