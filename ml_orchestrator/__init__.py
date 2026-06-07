@@ -1,13 +1,9 @@
 from dagster import Definitions, load_assets_from_modules
 
-from .assets import (  # mlops_deployment,; mlops_registry,; ,; mlops_utils,
-    mlops_data,
-    mlops_training,
-    mlops_transformation,
-)
+from .assets import mlops_data, mlops_registry, mlops_training, mlops_transformation
 
 # from .jobs import all_jobs
-from .resources import duckdb_resource
+from .resources import duckdb_resource, local_storage_resource
 
 # from .schedules import all_schedules
 # from .sensors import all_sensors
@@ -15,22 +11,17 @@ from .resources import duckdb_resource
 data_assets = load_assets_from_modules([mlops_data])
 transformation_assets = load_assets_from_modules([mlops_transformation])
 training_assets = load_assets_from_modules([mlops_training])
-# deployment_assets = load_assets_from_modules([mlops_deployment])
-# registry_assets = load_assets_from_modules([mlops_registry])
-# utils_assets = load_assets_from_modules([mlops_utils])
-
+registry_assets = load_assets_from_modules([mlops_registry])
 
 defs = Definitions(
     assets=[
         *data_assets,
         *transformation_assets,
         *training_assets,
-        # *registry_assets,
-        # *deployment_assets,
-        # *utils_assets,
+        *registry_assets,
     ],
     # jobs=all_jobs,
     # schedules=all_schedules,
     # sensors=all_sensors,
-    resources={**duckdb_resource},
+    resources={**duckdb_resource, **local_storage_resource},
 )
