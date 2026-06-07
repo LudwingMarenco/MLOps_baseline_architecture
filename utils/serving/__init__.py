@@ -501,7 +501,7 @@ def conditional_serving(
     @sensor(
         name=sensor_name,
         job=job,
-        minimum_interval_seconds=43200,
+        minimum_interval_seconds=600,
         default_status=DefaultSensorStatus.STOPPED,
         description="Trigger serving job once models for most recent version are registered.",
     )
