@@ -1,4 +1,4 @@
-from utils.monitor import MonitorServingQuality
+from utils.monitoring import MonitorServingQuality
 
 from ..partitions import client_one_serving_partition
 from . import mlops_constants

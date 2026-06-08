@@ -1,3 +1,5 @@
+from dagster import AssetSelection, define_asset_job
+
 from utils.persistence import create_training_job
 
 from ..assets.mlops_deployment import data_client_one_serving
@@ -17,4 +19,19 @@ data_client_one_serving_job = data_client_one_serving.to_job(
     partitions_def=client_one_serving_partition,
 )
 
-all_jobs = [data_client_one_serving_job]
+data_client_one_monitoring_job = define_asset_job(
+    name="churn_modeling_workflow_one_monitor_job",
+    selection=AssetSelection.groups("churn_modeling_workflow_one_monitor"),
+)
+
+data_client_one_retraining_job = define_asset_job(
+    name="data_client_one_retraining_job",
+    selection=AssetSelection.groups("churn_modeling_workflow_one"),
+)
+
+all_jobs = [
+    data_client_one_training_job,
+    data_client_one_serving_job,
+    data_client_one_monitoring_job,
+    data_client_one_retraining_job,
+]

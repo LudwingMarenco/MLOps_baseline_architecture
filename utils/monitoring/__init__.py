@@ -289,3 +289,63 @@ def conditional_monitoring(
             )
 
     return _sensor
+
+
+def conditional_retraining(
+    job: JobDefinition,
+    model_partitions: PartitionsDefinition,
+    sensor_name: str,
+):
+    @sensor(
+        name=sensor_name,
+        job=job,
+        minimum_interval_seconds=900,
+        default_status=DefaultSensorStatus.STOPPED,
+        description="Trigger retraining pipeline when model version changes across all batches",
+    )
+    def _sensor(context: SensorEvaluationContext):
+        base_path = "data/predictions"
+        versions = {}
+
+        for partition in model_partitions.get_partition_keys():
+            metadata_files = sorted(
+                glob.glob(os.path.join(base_path, partition, "*_metadata.json"))
+            )
+
+            if not metadata_files:
+                yield SkipReason(f"No metadata files found for partition {partition}.")
+
+            with open(metadata_files[-1], "r") as f:
+                metadata = json.load(f)
+
+            current_version = metadata.get("model_version")
+
+            if current_version is None:
+                yield SkipReason(
+                    f"No model version found in metadata for partition {partition}."
+                )
+
+            versions[partition] = current_version
+
+        # check all partitions agree on the same version
+        unique_versions = set(versions.values())
+        if len(unique_versions) > 1:
+            yield SkipReason(
+                f"Model versions are inconsistent across partitions: {versions}. "
+                f"Waiting for all batches to update."
+            )
+
+        current_version = unique_versions.pop()
+        last_seen_version = context.cursor
+
+        if last_seen_version != current_version:
+            context.log.info(
+                f"Model version changed across all partitions: "
+                f"{last_seen_version} -> {current_version}. Triggering retraining."
+            )
+            context.update_cursor(current_version)
+            yield RunRequest(run_key=current_version)
+        else:
+            yield SkipReason(f"Model version unchanged: {current_version}")
+
+    return _sensor
