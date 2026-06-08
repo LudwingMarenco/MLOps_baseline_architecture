@@ -1,15 +1,23 @@
+import glob
 import json
 import os
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from dagster import (
     AssetExecutionContext,
     AssetIn,
+    DefaultSensorStatus,
+    JobDefinition,
     MetadataValue,
     Output,
     PartitionsDefinition,
+    RunRequest,
+    SensorEvaluationContext,
+    SkipReason,
     asset,
+    sensor,
 )
 from scipy import stats
 
@@ -23,6 +31,8 @@ STATUS_DISPLAY = {
 }
 
 status_rank = {"GREEN": 0, "AMBER": 1, "RED": 2}
+
+KS_SIGNIFICANCE = 0.05
 
 
 class MonitorServingQuality:
@@ -70,10 +80,10 @@ class MonitorServingQuality:
 
             null_amber = monitoring_cfg["null_rate"]["amber"]
             null_red = monitoring_cfg["null_rate"]["red"]
-            drift_amber = monitoring_cfg["drift_pvalue"]["amber"]
-            drift_red = monitoring_cfg["drift_pvalue"]["red"]
+            drift_amber = monitoring_cfg["feature_drift"]["amber"]
+            drift_green = monitoring_cfg["feature_drift"]["green"]
             pred_amber = monitoring_cfg["prediction_drift"]["amber"]
-            pred_red = monitoring_cfg["prediction_drift"]["red"]
+            pred_green = monitoring_cfg["prediction_drift"]["green"]
 
             feature_cols = [c for c in serving_data.columns if c.startswith("C")]
             training_feature_cols = [
@@ -83,24 +93,15 @@ class MonitorServingQuality:
             # Data Quality
             null_rate = serving_data[feature_cols].isnull().mean().mean()
             column_count = len(feature_cols)
-            out_of_range = [
-                col
-                for col in feature_cols
-                if col in training_feature_cols
-                and (
-                    serving_data[col].min() < training_data[col].min()
-                    or serving_data[col].max() > training_data[col].max()
-                )
-            ]
 
             if null_rate >= null_red or column_count != len(training_feature_cols):
                 dq_status = "RED"
-            elif null_rate >= null_amber or out_of_range:
+            elif null_rate >= null_amber:
                 dq_status = "AMBER"
             else:
                 dq_status = "GREEN"
 
-            # Feature Drift Kolmogorov-Smirnov (KS)
+            # Feature Drift - Kolmogorov-Smirnov (KS)
             drifted_features = []
             for col in feature_cols:
                 if col not in training_feature_cols:
@@ -109,26 +110,27 @@ class MonitorServingQuality:
                     training_data[col].dropna().values,
                     serving_data[col].dropna().values,
                 )
-                if p_value < drift_amber:
+                if p_value < KS_SIGNIFICANCE:
                     drifted_features.append(col)
 
             drift_rate = len(drifted_features) / len(feature_cols)
 
-            if drift_rate >= drift_red:
-                drift_status = "RED"
-            elif drift_rate >= drift_amber:
+            if drift_rate <= drift_green:
+                drift_status = "GREEN"
+            elif drift_rate <= drift_amber:
                 drift_status = "AMBER"
             else:
-                drift_status = "GREEN"
+                drift_status = "RED"
 
-            # Prediction Drift
-            training_churn_rate = training_data["LABEL"].mean()
-            batch_churn_rate = serving_data["PREDICTION"].mean()
-            delta = abs(batch_churn_rate - training_churn_rate)
+            # Prediction Drift - Population Stability Index
+            training_churn = training_data["LABEL"].dropna().values
+            batch_churn = serving_data["PREDICTION"].dropna().values
 
-            if delta >= pred_red:
+            psi = calculate_psi(batch_churn, training_churn)
+
+            if psi >= pred_amber:
                 pred_status = "RED"
-            elif delta >= pred_amber:
+            elif psi >= pred_green:
                 pred_status = "AMBER"
             else:
                 pred_status = "GREEN"
@@ -150,19 +152,18 @@ class MonitorServingQuality:
                         "status": dq_status,
                         "null_rate": round(float(null_rate), 4),
                         "column_count": column_count,
-                        "out_of_range_columns": out_of_range,
+                        "method": "Null values check",
                     },
                     "feature_drift": {
                         "status": drift_status,
                         "drifted_feature_count": len(drifted_features),
                         "drift_rate": round(float(drift_rate), 4),
-                        "method": "ks_2samp",
+                        "method": " Kolmogorov - Smirnov Test",
                     },
                     "prediction_drift": {
                         "status": pred_status,
-                        "training_churn_rate": round(float(training_churn_rate), 4),
-                        "batch_churn_rate": round(float(batch_churn_rate), 4),
-                        "delta": round(float(delta), 4),
+                        "psi": round(float(psi), 4),
+                        "method": "Drift Population Stability Index Test",
                     },
                 },
             }
@@ -180,18 +181,111 @@ class MonitorServingQuality:
                 metadata={
                     "status": MetadataValue.text(STATUS_DISPLAY[overall_status]),
                     "dq_status": MetadataValue.text(STATUS_DISPLAY[dq_status]),
-                    "drift_status": MetadataValue.text(STATUS_DISPLAY[drift_status]),
+                    "feat_status": MetadataValue.text(STATUS_DISPLAY[drift_status]),
                     "pred_status": MetadataValue.text(STATUS_DISPLAY[pred_status]),
-                    "drifted_feature_count": MetadataValue.int(len(drifted_features)),
-                    "null_rate": MetadataValue.float(round(float(null_rate), 4)),
-                    "batch_churn_rate": MetadataValue.float(
-                        round(float(batch_churn_rate), 4)
-                    ),
-                    "training_churn_rate": MetadataValue.float(
-                        round(float(training_churn_rate), 4)
-                    ),
                     "report_path": MetadataValue.text(report_path),
                 },
             )
 
         return _asset
+
+
+def calculate_psi(expected, actual, buckettype="quantiles", buckets=10, axis=0):
+    def psi(expected_array, actual_array, buckets):
+        def scale_range(input, min, max):
+            input += -(np.min(input))
+            input /= np.max(input) / (max - min)
+            input += min
+            return input
+
+        breakpoints = np.arange(0, buckets + 1) / (buckets) * 100
+
+        if buckettype == "bins":
+            breakpoints = scale_range(
+                breakpoints, np.min(expected_array), np.max(expected_array)
+            )
+        elif buckettype == "quantiles":
+            breakpoints = np.stack(
+                [np.percentile(expected_array, b) for b in breakpoints]
+            )
+
+        expected_fractions = np.histogram(expected_array, breakpoints)[0] / len(
+            expected_array
+        )
+        actual_fractions = np.histogram(actual_array, breakpoints)[0] / len(
+            actual_array
+        )
+
+        def sub_psi(e_perc, a_perc):
+            if a_perc == 0:
+                a_perc = 0.0001
+            if e_perc == 0:
+                e_perc = 0.0001
+
+            value = (e_perc - a_perc) * np.log(e_perc / a_perc)
+            return value
+
+        psi_value = sum(
+            sub_psi(expected_fractions[i], actual_fractions[i])
+            for i in range(0, len(expected_fractions))
+        )
+
+        return psi_value
+
+    if len(expected.shape) == 1:
+        psi_values = np.empty(len(expected.shape))
+    else:
+        psi_values = np.empty(expected.shape[1 - axis])
+
+    for i in range(0, len(psi_values)):
+        if len(psi_values) == 1:
+            psi_values = psi(expected, actual, buckets)
+        elif axis == 0:
+            psi_values[i] = psi(expected[:, i], actual[:, i], buckets)
+        elif axis == 1:
+            psi_values[i] = psi(expected[i, :], actual[i, :], buckets)
+
+    return psi_values
+
+
+def conditional_monitoring(
+    job: JobDefinition,
+    model_partitions: PartitionsDefinition,
+    sensor_name: str,
+):
+    @sensor(
+        name=sensor_name,
+        job=job,
+        minimum_interval_seconds=180,
+        default_status=DefaultSensorStatus.STOPPED,
+        description="Trigger monitoring pipeline",
+    )
+    def _sensor(context: SensorEvaluationContext):
+        base_path = "data/predictions"
+        run_requests = []
+        skipped_partitions = []
+
+        for partition in model_partitions.get_partition_keys():
+            if glob.glob(os.path.join(base_path, partition, "*.parquet")):
+                run_requests.append(
+                    RunRequest(
+                        run_key=None,
+                        partition_key=partition,
+                    )
+                )
+            else:
+                skipped_partitions.append(partition)
+
+        if skipped_partitions:
+            context.log.info(
+                f"No predictions found for partitions: {', '.join(skipped_partitions)}"
+            )
+
+        if run_requests:
+            yield from run_requests
+        else:
+            yield SkipReason(
+                f"No prediction parquet files found in any partition: {', '.join(skipped_partitions)}"
+            )
+
+    return _sensor

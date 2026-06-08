@@ -72,10 +72,10 @@ monitor:
   null_rate:
     amber: 0.01
     red: 0.05
-  drift_pvalue:
-    amber: 0.05
-    red: 0.01
+  feature_drift:
+    green: 0.1
+    amber: 0.3
   prediction_drift:
-    amber: 0.05
-    red: 0.15
+    green: 0.1
+    amber: 0.2
   output_path: "data/monitoring"

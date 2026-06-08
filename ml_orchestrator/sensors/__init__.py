@@ -1,3 +1,4 @@
+from utils.monitoring import conditional_monitoring
 from utils.serving import conditional_serving
 from utils.training import conditional_training
 
@@ -21,8 +22,14 @@ data_client_one_serving_sensor = conditional_serving(
     job_partitions=client_one_serving_partition,
 )
 
+data_client_one_monitoring_sensor = conditional_monitoring(
+    job=data_client_one_serving_job,
+    model_partitions=data_client_one_partition,
+    sensor_name="data_client_one_monitoring_sensor",
+)
 
 all_sensors = [
     data_client_one_training_sensor,
     data_client_one_serving_sensor,
+    data_client_one_monitoring_sensor,
 ]
