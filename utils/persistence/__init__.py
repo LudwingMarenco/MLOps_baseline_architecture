@@ -1,5 +1,6 @@
 import io
 import json
+import os
 import re
 import subprocess
 
@@ -155,19 +156,15 @@ class SaveMLArtifact:
             buffer.seek(0)
             artifact_path = model_persistor.save(artifact_name, buffer)
 
-            model_persistor.register(model_name)
-
             if persisted:
-                model_persistor.promote(model_name, stage="prod")
+                model_version = model_persistor.register(model_name)
             else:
-                model_persistor.promote(model_name, stage="dev")
+                model_version = model_persistor.get_version(model_name)
 
             if isinstance(target_name, list):
                 metadata_text = MetadataValue.json(target_name)
             else:
                 metadata_text = MetadataValue.text(target_name)
-
-            model_version, model_stage = get_gto_info(model_name)
 
             return Output(
                 None,
@@ -175,7 +172,6 @@ class SaveMLArtifact:
                     "artifact_path": MetadataValue.text(artifact_path),
                     "model_partition": MetadataValue.text(model_name),
                     "model_version": MetadataValue.text(model_version),
-                    "model_stage": MetadataValue.text(model_stage),
                     "task": MetadataValue.text(task),
                     "target": metadata_text,
                     "persisted": MetadataValue.bool(persisted),
@@ -185,21 +181,16 @@ class SaveMLArtifact:
         return _asset
 
 
-def get_gto_info(model_name: str, repo_path: str = ".") -> tuple[str, str]:
-    result = subprocess.run(
-        ["gto", "show", "--json"],
-        capture_output=True,
-        text=True,
-        check=True,
-        cwd=repo_path,
-    )
-    info = json.loads(result.stdout)
-    model_info = info.get(model_name, {})
-    version = model_info.get("version", "unknown")
+def get_model_info(model_name: str, base_path: str = "models") -> tuple[str, str]:
+    version_path = os.path.join(base_path, f"{model_name}_version.txt")
 
-    stage_dict = model_info.get("stage", {})
-    stage = next((s for s, v in stage_dict.items() if v == version), "unknown")
-    return version, stage
+    if not os.path.exists(version_path):
+        return "unknown"
+
+    with open(version_path, "r") as f:
+        version = f.read().strip()
+
+    return version
 
 
 def create_training_job(

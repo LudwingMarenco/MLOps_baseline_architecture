@@ -23,7 +23,7 @@ from scipy import stats
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 from utils.parameters import get_parameters
-from utils.serving import get_gto_info
+from utils.serving import get_model_info
 
 STATUS_DISPLAY = {
     "RED": "🔴 RED",
@@ -160,12 +160,11 @@ class MonitorServingQuality:
                 key=lambda s: status_rank[s],
             )
 
-            model_version, model_stage = get_gto_info(level)
+            model_version = get_model_info(level)
             report = {
                 "batch_id": level,
                 "run_timestamp": datetime.now().isoformat(),
                 "model_version": model_version,
-                "model_stage": model_stage,
                 "status": overall_status,
                 "checks": {
                     "data_quality": {

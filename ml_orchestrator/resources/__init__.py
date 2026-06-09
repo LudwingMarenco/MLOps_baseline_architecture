@@ -12,8 +12,6 @@ duckdb_resource = {"duckdb": DuckDBResource(database="data/local.duckdb")}
 
 class LocalStorageResource(ConfigurableResource):
     base_path: str = "models"
-    repo_path: str = "."
-    gto_enabled: bool = True
 
     def save(self, artifact_name: str, buffer) -> str:
         os.makedirs(self.base_path, exist_ok=True)
@@ -22,71 +20,33 @@ class LocalStorageResource(ConfigurableResource):
             f.write(buffer.getvalue())
         return path
 
-    def register(self, model_name: str) -> None:
-        if self.gto_enabled:
-            lock_path = os.path.join(self.repo_path, ".gto_lock")
-            with FileLock(lock_path, timeout=120):
-                subprocess.run(
-                    ["git", "add", "-A"],
-                    cwd=self.repo_path,
-                    capture_output=True,
-                )
-                commit_result = subprocess.run(
-                    ["git", "commit", "-m", f"chore: retrain {model_name}"],
-                    cwd=self.repo_path,
-                    capture_output=True,
-                    text=True,
-                )
-                if commit_result.returncode != 0:
-                    subprocess.run(
-                        [
-                            "git",
-                            "commit",
-                            "--allow-empty",
-                            "-m",
-                            f"chore: retrain {model_name}",
-                        ],
-                        cwd=self.repo_path,
-                        capture_output=True,
-                    )
-                result = subprocess.run(
-                    ["gto", "register", model_name, "--repo", self.repo_path],
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode != 0 and "already registered" not in result.stderr:
-                    raise subprocess.CalledProcessError(
-                        result.returncode, result.args, result.stdout, result.stderr
-                    )
-                subprocess.run(["git", "push"], cwd=self.repo_path, capture_output=True)
-                subprocess.run(
-                    ["git", "push", "--tags"], cwd=self.repo_path, capture_output=True
-                )
+    def _version_path(self, model_name: str) -> str:
+        return os.path.join(self.base_path, f"{model_name}_version.txt")
 
-    def promote(self, model_name: str, stage: str = "dev") -> None:
-        if self.gto_enabled:
-            result = subprocess.run(
-                [
-                    "gto",
-                    "assign",
-                    model_name,
-                    "--stage",
-                    stage,
-                    "--repo",
-                    self.repo_path,
-                ],
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode != 0:
-                if "already in stage" in result.stderr:
-                    return
-                raise subprocess.CalledProcessError(
-                    result.returncode, result.args, result.stdout, result.stderr
-                )
-            subprocess.run(
-                ["git", "push", "--tags"], cwd=self.repo_path, capture_output=True
-            )
+    def _read_version(self, model_name: str) -> tuple:
+        path = self._version_path(model_name)
+        if not os.path.exists(path):
+            return (0, 0, 0)
+        with open(path, "r") as f:
+            parts = f.read().strip().lstrip("v").split(".")
+            return tuple(int(p) for p in parts)
+
+    def _write_version(self, model_name: str, version: tuple) -> str:
+        version_str = f"v{version[0]}.{version[1]}.{version[2]}"
+        with open(self._version_path(model_name), "w") as f:
+            f.write(version_str)
+        return version_str
+
+    def register(self, model_name: str) -> str:
+        lock_path = os.path.join(self.base_path, ".version_lock")
+        with FileLock(lock_path, timeout=120):
+            major, minor, patch = self._read_version(model_name)
+            new_version = (major, minor, patch + 1)
+            return self._write_version(model_name, new_version)
+
+    def get_version(self, model_name: str) -> str:
+        major, minor, patch = self._read_version(model_name)
+        return f"v{major}.{minor}.{patch}"
 
     def load(self, artifact_path: str):
         with open(artifact_path, "rb") as f:

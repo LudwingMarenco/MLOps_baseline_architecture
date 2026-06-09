@@ -26,7 +26,7 @@ from utils.parameters import (
     get_latest_partition_materialization,
     get_parameters,
 )
-from utils.persistence import get_gto_info
+from utils.persistence import get_model_info
 
 
 def normalize_predictions(pred):
@@ -266,7 +266,7 @@ class ModelChunkedServing:
                     f"Written to {output_file}"
                 )
 
-            model_version, model_stage = get_gto_info(
+            model_version = get_model_info(
                 self.model_partitions.get_partition_keys()[0]
             )
 
@@ -276,7 +276,6 @@ class ModelChunkedServing:
                 "run_id": context.run_id,
                 "run_timestamp": datetime.now().isoformat(),
                 "model_version": model_version,
-                "model_stage": model_stage,
                 "partition_key": context.partition_key,
                 "row_count": len(result),
                 "prediction_column": columns_metadata,
