@@ -2,7 +2,7 @@ data:
   train_query: "churn_modeling_workflow_one_train.sql"
   serving_query: "churn_modeling_workflow_one_serving.sql"
   monitor_query: "churn_modeling_workflow_one_monitor.sql"
-  chunk_size: 30000
+  chunk_size: 40000
   levels:
     "0923_1737":
       context:
@@ -78,4 +78,7 @@ monitor:
   prediction_drift:
     green: 0.1
     amber: 0.2
+  model_performance:
+    green: 0.75
+    amber: 0.60
   output_path: "data/monitoring"

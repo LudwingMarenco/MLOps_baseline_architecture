@@ -20,6 +20,7 @@ from dagster import (
     sensor,
 )
 from scipy import stats
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
 
 from utils.parameters import get_parameters
 from utils.serving import get_gto_info
@@ -84,6 +85,8 @@ class MonitorServingQuality:
             drift_green = monitoring_cfg["feature_drift"]["green"]
             pred_amber = monitoring_cfg["prediction_drift"]["amber"]
             pred_green = monitoring_cfg["prediction_drift"]["green"]
+            perf_threshold_green = monitoring_cfg["model_performance"]["green"]
+            perf_threshold_amber = monitoring_cfg["model_performance"]["amber"]
 
             feature_cols = [c for c in serving_data.columns if c.startswith("C")]
             training_feature_cols = [
@@ -126,7 +129,7 @@ class MonitorServingQuality:
             training_churn = training_data["LABEL"].dropna().values
             batch_churn = serving_data["PREDICTION"].dropna().values
 
-            psi = calculate_psi(batch_churn, training_churn)
+            psi = calculate_psi(training_churn, batch_churn, buckettype="quantiles")
 
             if psi >= pred_amber:
                 pred_status = "RED"
@@ -135,8 +138,25 @@ class MonitorServingQuality:
             else:
                 pred_status = "GREEN"
 
+            y_true = serving_data["LABEL"].values
+            y_pred = serving_data["PREDICTION"].values
+
+            accuracy = accuracy_score(y_true, y_pred)
+            f1 = f1_score(y_true, y_pred)
+            auc = roc_auc_score(y_true, y_pred)
+
+            perf_threshold_green = monitoring_cfg["model_performance"]["green"]
+            perf_threshold_amber = monitoring_cfg["model_performance"]["amber"]
+
+            if accuracy >= perf_threshold_green:
+                perf_status = "GREEN"
+            elif accuracy >= perf_threshold_amber:
+                perf_status = "AMBER"
+            else:
+                perf_status = "RED"
+
             overall_status = max(
-                [dq_status, drift_status, pred_status],
+                [dq_status, drift_status, pred_status, perf_status],
                 key=lambda s: status_rank[s],
             )
 
@@ -165,6 +185,13 @@ class MonitorServingQuality:
                         "psi": round(float(psi), 4),
                         "method": "Drift Population Stability Index Test",
                     },
+                    "model_performance": {
+                        "status": perf_status,
+                        "accuracy": round(float(accuracy), 4),
+                        "f1_score": round(float(f1), 4),
+                        "auc": round(float(auc), 4),
+                        "method": "Ground Truth Comparison",
+                    },
                 },
             }
 
@@ -183,6 +210,7 @@ class MonitorServingQuality:
                     "dq_status": MetadataValue.text(STATUS_DISPLAY[dq_status]),
                     "feat_status": MetadataValue.text(STATUS_DISPLAY[drift_status]),
                     "pred_status": MetadataValue.text(STATUS_DISPLAY[pred_status]),
+                    "perf_status": MetadataValue.text(STATUS_DISPLAY[perf_status]),
                     "report_path": MetadataValue.text(report_path),
                 },
             )
@@ -294,6 +322,7 @@ def conditional_monitoring(
 def conditional_retraining(
     job: JobDefinition,
     model_partitions: PartitionsDefinition,
+    level_partitions: PartitionsDefinition,
     sensor_name: str,
 ):
     @sensor(
@@ -307,13 +336,14 @@ def conditional_retraining(
         base_path = "data/predictions"
         versions = {}
 
-        for partition in model_partitions.get_partition_keys():
+        for partition in level_partitions.get_partition_keys():
             metadata_files = sorted(
                 glob.glob(os.path.join(base_path, partition, "*_metadata.json"))
             )
 
             if not metadata_files:
                 yield SkipReason(f"No metadata files found for partition {partition}.")
+                return
 
             with open(metadata_files[-1], "r") as f:
                 metadata = json.load(f)
@@ -324,16 +354,18 @@ def conditional_retraining(
                 yield SkipReason(
                     f"No model version found in metadata for partition {partition}."
                 )
+                return
 
             versions[partition] = current_version
 
-        # check all partitions agree on the same version
+        # check all level partitions agree on the same version
         unique_versions = set(versions.values())
         if len(unique_versions) > 1:
             yield SkipReason(
                 f"Model versions are inconsistent across partitions: {versions}. "
                 f"Waiting for all batches to update."
             )
+            return
 
         current_version = unique_versions.pop()
         last_seen_version = context.cursor
@@ -344,7 +376,11 @@ def conditional_retraining(
                 f"{last_seen_version} -> {current_version}. Triggering retraining."
             )
             context.update_cursor(current_version)
-            yield RunRequest(run_key=current_version)
+            for model_partition in model_partitions.get_partition_keys():
+                yield RunRequest(
+                    run_key=f"{current_version}_{model_partition}",
+                    partition_key=model_partition,
+                )
         else:
             yield SkipReason(f"Model version unchanged: {current_version}")
 

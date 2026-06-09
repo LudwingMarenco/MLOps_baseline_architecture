@@ -38,7 +38,8 @@ data_client_one_monitoring_sensor = conditional_monitoring(
 
 data_client_one_retraining = conditional_retraining(
     job=data_client_one_retraining_job,
-    model_partitions=client_one_serving_partition,
+    model_partitions=data_client_one_partition,
+    level_partitions=client_one_serving_partition,
     sensor_name="data_client_one_retraining",
 )
 

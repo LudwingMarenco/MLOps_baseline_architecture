@@ -22,11 +22,36 @@ class LocalStorageResource(ConfigurableResource):
 
     def register(self, model_name: str) -> None:
         if self.gto_enabled:
-            result = subprocess.run(
-                ["gto", "register", model_name, "--repo", self.repo_path],
+            # commit model file so GTO sees a new commit
+            subprocess.run(
+                ["git", "add", "-A"],
+                cwd=self.repo_path,
+                capture_output=True,
+            )
+            commit_result = subprocess.run(
+                ["git", "commit", "-m", f"chore: retrain {model_name}"],
+                cwd=self.repo_path,
                 capture_output=True,
                 text=True,
-                # no check=True here
+            )
+            # if nothing to commit, amend to force a new commit hash
+            if commit_result.returncode != 0:
+                subprocess.run(
+                    [
+                        "git",
+                        "commit",
+                        "--allow-empty",
+                        "-m",
+                        f"chore: retrain {model_name}",
+                    ],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                )
+
+            result = subprocess.run(
+                ["git", "register", model_name, "--repo", self.repo_path],
+                capture_output=True,
+                text=True,
             )
             if result.returncode != 0 and "already registered" not in result.stderr:
                 raise subprocess.CalledProcessError(
