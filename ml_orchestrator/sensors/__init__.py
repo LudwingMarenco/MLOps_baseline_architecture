@@ -36,16 +36,16 @@ data_client_one_monitoring_sensor = conditional_monitoring(
     sensor_name="data_client_one_monitoring_sensor",
 )
 
-data_client_one_retraining = conditional_retraining(
+data_client_one_retraining_sensor = conditional_retraining(
     job=data_client_one_retraining_job,
     model_partitions=data_client_one_partition,
     level_partitions=client_one_serving_partition,
-    sensor_name="data_client_one_retraining",
+    sensor_name="data_client_one_retraining_sensor",
 )
 
 all_sensors = [
     data_client_one_training_sensor,
     data_client_one_serving_sensor,
     data_client_one_monitoring_sensor,
-    data_client_one_retraining,
+    data_client_one_retraining_sensor,
 ]
