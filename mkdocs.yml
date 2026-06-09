@@ -1,0 +1,43 @@
+site_name: Dagster Machine Learning Operation Orchestrator
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
+  icon:
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
+nav:
+  - Home: documentation/getting_started.md
+#   - ML Workflow Pathway: ml_workflow_path.md
+#   - ML Asset Development: ml_asset_development.md
+#   - ML Training Monitoring: ml_training_monitor.md
+#   - ML Operations Development: ml_op_development.md
+#   - ML Serving Monitoring: ml_serving_monitor.md
+#   - ML Changelog: ml_changelog.md
+# #  - ML Workflow Examples: ml_workflow_example.md
+#   - ML Workflow Questions: ml_workflow_questions.md
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+

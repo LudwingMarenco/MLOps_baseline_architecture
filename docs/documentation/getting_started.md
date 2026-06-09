@@ -56,20 +56,16 @@ order:
 > DataOps side rather than MLOps. However, the orchestrator is intentionally designed to
 > integrate data updates seamlessly, making it straightforward to introduce.
 
+
+
 ## Documentation
 
-A comprehensive documentation guide covering the specific details of the MLOps Orchestrator
-implementation is available in the `docs` folder.
+A comprehensive documentation guide about specific details of the MLOps Orchestrator implementation are avaiable in `docs` folder.
 
-- **Business Presentation:** A high-level overview of the most important aspects of the
-orchestrator, available as a standalone file at
-[docs/business_deck.html](docs/business_deck.html).
+To view the documentation locally, run:
 
-- **Technical Documentation:** A detailed guide covering the core aspects of the MLOps
-Orchestrator. To browse it locally, activate the virtual environment and run:
+```bash
+  mkdocs serve
+ ```
 
-    ```bash
-    mkdocs serve
-    ```
-
-  Then open http://127.0.0.1:8000 in your browser to navigate through the content.
+Then open http://127.0.0.1:8000 in your browser to navigate through the content. 
