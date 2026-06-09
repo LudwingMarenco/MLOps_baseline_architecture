@@ -1,3 +1,4 @@
+import fcntl
 import os
 import subprocess
 
@@ -22,51 +23,55 @@ class LocalStorageResource(ConfigurableResource):
 
     def register(self, model_name: str) -> None:
         if self.gto_enabled:
-            # commit model file so GTO sees a new commit
-            subprocess.run(
-                ["git", "add", "-A"],
-                cwd=self.repo_path,
-                capture_output=True,
-            )
-            commit_result = subprocess.run(
-                ["git", "commit", "-m", f"chore: retrain {model_name}"],
-                cwd=self.repo_path,
-                capture_output=True,
-                text=True,
-            )
-            # if nothing to commit, amend to force a new commit hash
-            if commit_result.returncode != 0:
-                subprocess.run(
-                    [
-                        "git",
-                        "commit",
-                        "--allow-empty",
-                        "-m",
-                        f"chore: retrain {model_name}",
-                    ],
-                    cwd=self.repo_path,
-                    capture_output=True,
-                )
-
-            result = subprocess.run(
-                ["gto", "register", model_name, "--repo", self.repo_path],
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode != 0 and "already registered" not in result.stderr:
-                raise subprocess.CalledProcessError(
-                    result.returncode, result.args, result.stdout, result.stderr
-                )
-            subprocess.run(
-                ["git", "push"],
-                cwd=self.repo_path,
-                capture_output=True,
-            )
-            subprocess.run(
-                ["git", "push", "--tags"],
-                cwd=self.repo_path,
-                capture_output=True,
-            )
+            lock_path = os.path.join(self.repo_path, ".gto_lock")
+            with open(lock_path, "w") as lock_file:
+                fcntl.flock(lock_file, fcntl.LOCK_EX)
+                try:
+                    subprocess.run(
+                        ["git", "add", "-A"],
+                        cwd=self.repo_path,
+                        capture_output=True,
+                    )
+                    commit_result = subprocess.run(
+                        ["git", "commit", "-m", f"chore: retrain {model_name}"],
+                        cwd=self.repo_path,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if commit_result.returncode != 0:
+                        subprocess.run(
+                            [
+                                "git",
+                                "commit",
+                                "--allow-empty",
+                                "-m",
+                                f"chore: retrain {model_name}",
+                            ],
+                            cwd=self.repo_path,
+                            capture_output=True,
+                        )
+                    result = subprocess.run(
+                        ["gto", "register", model_name, "--repo", self.repo_path],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if (
+                        result.returncode != 0
+                        and "already registered" not in result.stderr
+                    ):
+                        raise subprocess.CalledProcessError(
+                            result.returncode, result.args, result.stdout, result.stderr
+                        )
+                    subprocess.run(
+                        ["git", "push"], cwd=self.repo_path, capture_output=True
+                    )
+                    subprocess.run(
+                        ["git", "push", "--tags"],
+                        cwd=self.repo_path,
+                        capture_output=True,
+                    )
+                finally:
+                    fcntl.flock(lock_file, fcntl.LOCK_UN)
 
     def promote(self, model_name: str, stage: str = "dev") -> None:
         if self.gto_enabled:
@@ -89,10 +94,14 @@ class LocalStorageResource(ConfigurableResource):
                 raise subprocess.CalledProcessError(
                     result.returncode, result.args, result.stdout, result.stderr
                 )
+            subprocess.run(
+                ["git", "push", "--tags"], cwd=self.repo_path, capture_output=True
+            )
 
     def load(self, artifact_path: str):
         with open(artifact_path, "rb") as f:
             return joblib.load(f)
 
 
+local_storage_resource = {"model_persistor": LocalStorageResource(base_path="models")}
 local_storage_resource = {"model_persistor": LocalStorageResource(base_path="models")}
