@@ -32,10 +32,24 @@ Dagster was chosen for its powerful support of modular data assets, enabling us 
 
 1. In the Dagster UI, go to **Assets** in the upper menu, then click **View Lineage**. Hover over the `churn_modeling_workflow_one` box and right-click to trigger materialization by clicking in **Materialize assets (7)**. Dagster will prompt you to select a partition, choose **All** on the right panel and click **Launch Backfill**. This is the only materialization that needs to be triggered manually. Once complete, the orchestrator will automatically simulate the full end-to-end lifecycle of the ML workflow.
 
-2. Go to the **Runs** menu at the top of the UI to monitor the materialization status. Once the status shows **Success**, navigate to **Automation** and activate the sensors in the following order:
+2. Go to the **Runs** menu at the top of the UI to monitor the materialization status. Once the
+status shows **Success**, navigate to **Automation** and activate the sensors in the following
+order:
 
-   a. `data_client_one_retraining_sensor`: It will retrigger the training of model based on monitoring status and model version. It will trigger if the status is **RED** and the current version of model was used for serving. This sensor checks for these conditions every 15 minutes
-   b. `data_client_one_serving_sensor`
+   a. `data_client_one_retraining_sensor`: Triggers model retraining based on monitoring status
+   and model version. It activates when the status is **RED** and the current model version is
+   being used for serving. This sensor checks for these conditions every 15 minutes.
+
+   b. `data_client_one_serving_sensor`: Triggers the serving pipeline once all ensemble models
+   have been successfully persisted for a defined version. This sensor performs its validation
+   check every 10 minutes.
+
+   c. `data_client_one_monitoring_sensor`: Materializes the monitoring pipeline to evaluate
+   serving data quality, feature drift, prediction drift, and model performance. The status is
+   computed every 3 minutes.
+
+   d. `data_client_one_training_sensor`: Triggers model training when accuracy constraints are
+   not met for successful model registration.
 
 ## Development
 

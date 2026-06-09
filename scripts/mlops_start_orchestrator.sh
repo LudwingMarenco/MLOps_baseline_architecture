@@ -12,10 +12,14 @@ else
   echo "Tags to delete:"
   echo "$TAGS"
   echo "$TAGS" | xargs git tag -d
+
+  echo "Deleting remote tags..."
+  echo "$TAGS" | xargs -I {} git push origin --delete {} 2>/dev/null || true
+
   echo "Done. GTO registry reset to fresh start."
 fi
 
-for dir in data/monitoring data/predictions; do
+for dir in data/monitoring data/predictions models/; do
   if [ -d "$dir" ]; then
     count=$(find "$dir" -type f | wc -l)
     find "$dir" -type f -delete
