@@ -49,7 +49,7 @@ class LocalStorageResource(ConfigurableResource):
                 )
 
             result = subprocess.run(
-                ["git", "register", model_name, "--repo", self.repo_path],
+                ["gto", "register", model_name, "--repo", self.repo_path],
                 capture_output=True,
                 text=True,
             )
