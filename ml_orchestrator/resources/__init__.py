@@ -5,6 +5,7 @@ import subprocess
 import joblib
 from dagster import ConfigurableResource
 from dagster_duckdb import DuckDBResource
+from filelock import FileLock
 
 duckdb_resource = {"duckdb": DuckDBResource(database="data/local.duckdb")}
 
@@ -24,54 +25,43 @@ class LocalStorageResource(ConfigurableResource):
     def register(self, model_name: str) -> None:
         if self.gto_enabled:
             lock_path = os.path.join(self.repo_path, ".gto_lock")
-            with open(lock_path, "w") as lock_file:
-                fcntl.flock(lock_file, fcntl.LOCK_EX)
-                try:
+            with FileLock(lock_path, timeout=120):
+                subprocess.run(
+                    ["git", "add", "-A"],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                )
+                commit_result = subprocess.run(
+                    ["git", "commit", "-m", f"chore: retrain {model_name}"],
+                    cwd=self.repo_path,
+                    capture_output=True,
+                    text=True,
+                )
+                if commit_result.returncode != 0:
                     subprocess.run(
-                        ["git", "add", "-A"],
+                        [
+                            "git",
+                            "commit",
+                            "--allow-empty",
+                            "-m",
+                            f"chore: retrain {model_name}",
+                        ],
                         cwd=self.repo_path,
                         capture_output=True,
                     )
-                    commit_result = subprocess.run(
-                        ["git", "commit", "-m", f"chore: retrain {model_name}"],
-                        cwd=self.repo_path,
-                        capture_output=True,
-                        text=True,
+                result = subprocess.run(
+                    ["gto", "register", model_name, "--repo", self.repo_path],
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != 0 and "already registered" not in result.stderr:
+                    raise subprocess.CalledProcessError(
+                        result.returncode, result.args, result.stdout, result.stderr
                     )
-                    if commit_result.returncode != 0:
-                        subprocess.run(
-                            [
-                                "git",
-                                "commit",
-                                "--allow-empty",
-                                "-m",
-                                f"chore: retrain {model_name}",
-                            ],
-                            cwd=self.repo_path,
-                            capture_output=True,
-                        )
-                    result = subprocess.run(
-                        ["gto", "register", model_name, "--repo", self.repo_path],
-                        capture_output=True,
-                        text=True,
-                    )
-                    if (
-                        result.returncode != 0
-                        and "already registered" not in result.stderr
-                    ):
-                        raise subprocess.CalledProcessError(
-                            result.returncode, result.args, result.stdout, result.stderr
-                        )
-                    subprocess.run(
-                        ["git", "push"], cwd=self.repo_path, capture_output=True
-                    )
-                    subprocess.run(
-                        ["git", "push", "--tags"],
-                        cwd=self.repo_path,
-                        capture_output=True,
-                    )
-                finally:
-                    fcntl.flock(lock_file, fcntl.LOCK_UN)
+                subprocess.run(["git", "push"], cwd=self.repo_path, capture_output=True)
+                subprocess.run(
+                    ["git", "push", "--tags"], cwd=self.repo_path, capture_output=True
+                )
 
     def promote(self, model_name: str, stage: str = "dev") -> None:
         if self.gto_enabled:
@@ -103,5 +93,4 @@ class LocalStorageResource(ConfigurableResource):
             return joblib.load(f)
 
 
-local_storage_resource = {"model_persistor": LocalStorageResource(base_path="models")}
 local_storage_resource = {"model_persistor": LocalStorageResource(base_path="models")}
