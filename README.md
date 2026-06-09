@@ -28,7 +28,13 @@ Dagster was chosen for its powerful support of modular data assets, enabling us 
     ```
    Open http://127.0.0.1:35695 in your browser to see the ml-orchestrator.
 
-## Running the orchestrator
+## Running the Orchestrator
+
+1. In the Dagster UI, go to **Assets** in the upper menu, then click **View Lineage**. Hover over the `churn_modeling_workflow_one` box and right-click to trigger materialization. Dagster will prompt you to select a partition — choose **All** on the right panel and click **Launch Backfill**. This is the only materialization that needs to be triggered manually. Once complete, the orchestrator will automatically simulate the full end-to-end lifecycle of the ML workflow.
+
+2. Go to the **Runs** menu at the top of the UI to monitor the materialization status. Once the status shows **Success**, navigate to **Automation** and activate the sensors in the following order:
+
+   a. `data_client_one_retraining`
 
 ## Development
 
