@@ -194,8 +194,8 @@ class MonitorServingQuality:
                     },
                 },
             }
-
-            output_dir = os.path.join(monitoring_cfg["output_path"], level)
+            base_output = "data/monitoring"
+            output_dir = os.path.join(base_output, level)
             os.makedirs(output_dir, exist_ok=True)
             report_path = os.path.join(output_dir, "monitoring_report.json")
             with open(report_path, "w") as f:

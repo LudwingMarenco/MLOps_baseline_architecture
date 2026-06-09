@@ -67,7 +67,6 @@ serving:
     name: "PREDICTION"
     type: "INT"
   table_name: "ML_PREDICTION"
-  output_path: "data/predictions"
 monitor:
   null_rate:
     amber: 0.01
@@ -81,4 +80,3 @@ monitor:
   model_performance:
     green: 0.75
     amber: 0.60
-  output_path: "data/monitoring"

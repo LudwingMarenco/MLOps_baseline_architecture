@@ -246,7 +246,7 @@ class ModelChunkedServing:
                     result[column_name] = values
                     columns_metadata.append(column_name)
 
-            base_output = parameters["serving"]["output_path"]
+            base_output = "data/predictions"
             table_name = parameters["serving"]["table_name"].lower()
             output_dir = os.path.join(base_output, level) if level else base_output
             os.makedirs(output_dir, exist_ok=True)

@@ -196,7 +196,9 @@ def get_gto_info(model_name: str, repo_path: str = ".") -> tuple[str, str]:
     info = json.loads(result.stdout)
     model_info = info.get(model_name, {})
     version = model_info.get("version", "unknown")
-    stage = next(iter(model_info.get("stage", {}).keys()), "unknown")
+
+    stage_dict = model_info.get("stage", {})
+    stage = next((s for s, v in stage_dict.items() if v == version), "unknown")
     return version, stage
 
 

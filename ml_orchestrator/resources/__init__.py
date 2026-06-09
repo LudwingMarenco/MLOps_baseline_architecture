@@ -57,6 +57,16 @@ class LocalStorageResource(ConfigurableResource):
                 raise subprocess.CalledProcessError(
                     result.returncode, result.args, result.stdout, result.stderr
                 )
+            subprocess.run(
+                ["git", "push"],
+                cwd=self.repo_path,
+                capture_output=True,
+            )
+            subprocess.run(
+                ["git", "push", "--tags"],
+                cwd=self.repo_path,
+                capture_output=True,
+            )
 
     def promote(self, model_name: str, stage: str = "dev") -> None:
         if self.gto_enabled:
