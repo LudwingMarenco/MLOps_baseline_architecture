@@ -60,12 +60,9 @@ order:
 
 ## Documentation
 
-A comprehensive documentation guide about specific details of the MLOps Orchestrator implementation are avaiable in `docs` folder.
+A comprehensive documentation guide covering the specific details of the MLOps Orchestrator
+implementation is available in the `docs` folder.
 
-To view the documentation locally, run:
-
-```bash
-  mkdocs serve
- ```
-
-Then open http://127.0.0.1:8000 in your browser to navigate through the content. 
+- **Business Presentation:** A high-level overview of the most important aspects of the
+orchestrator, available as a standalone file at
+[docs/business_deck.html](docs/business_deck.html).

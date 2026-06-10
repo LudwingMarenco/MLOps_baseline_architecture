@@ -21,11 +21,11 @@ theme:
       quote: octicons/quote-16
 nav:
   - Home: documentation/getting_started.md
-#   - ML Workflow Pathway: ml_workflow_path.md
-#   - ML Asset Development: ml_asset_development.md
-#   - ML Training Monitoring: ml_training_monitor.md
-#   - ML Operations Development: ml_op_development.md
-#   - ML Serving Monitoring: ml_serving_monitor.md
+  - ML Workflow Pathway: documentation/ml_workflow_path.md
+  - ML Asset Development: documentation/ml_asset_development.md
+  - ML Training Monitoring: documentation/ml_training_monitor.md
+  - ML Operations Development: documentation/ml_op_development.md
+  - ML Serving Monitoring: documentation/ml_serving_monitor.md
 #   - ML Changelog: ml_changelog.md
 # #  - ML Workflow Examples: ml_workflow_example.md
 #   - ML Workflow Questions: ml_workflow_questions.md
