@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dagster Machine Learning Operation Orchestrator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --ink: #0e0f11;
+            --paper: #7d7c76;
+            --signal: #00c896;
+            --amber: #f5a623;
+            --red: #e84040;
+            --muted: #6b7280;
+            --rule: #e2e0da;
+            --card: #ffffff;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            overflow: hidden;
+        }
+
+        /* ── DECK SHELL ── */
+        .deck {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 5vw 7vw;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Light overlay so text stays readable on top of background */
+        .slide::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(247, 246, 242, 0.65);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── SLIDE BACKGROUNDS ── */
+        .slide-1 {
+            background-image: url('./documentation/figures/bitmap.png');
+        }
+
+        .slide-2 {
+            background-image: url('./documentation/figures/bitmap.png');
+        }
+
+        .slide-3 {
+            background-image: url('./documentation/figures/bitmap.png');
+        }
+
+        .slide-4 {
+            background-image: url('./documentation/figures/bitmap.png');
+        }
+
+        .slide-5 {
+            background-image: url('./documentation/figures/bitmap.png');
+        }
+
+        .slide-6 {
+            background-image: url('./documentation/figures/bitmap.png');
+        }
+
+        /* ── NAVIGATION ── */
+        .nav {
+            position: fixed;
+            bottom: 2.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: rgba(14, 15, 17, 0.08);
+            border: 1px solid rgba(14, 15, 17, 0.15);
+            color: var(--ink);
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: rgba(14, 15, 17, 0.16);
+        }
+
+        .nav-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(14, 15, 17, 0.25);
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .dot.active {
+            background: var(--signal);
+            transform: scale(1.4);
+        }
+
+        .slide-counter {
+            font-size: 0.75rem;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── TYPOGRAPHY ── */
+        .hero-tag {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(5rem, 13vw, 11rem);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 0.9;
+            color: var(--ink);
+        }
+
+        .hero-sub {
+            font-size: clamp(1.2rem, 2vw, 1.6rem);
+            color: rgba(14, 15, 17, 0.7);
+            margin-top: 1.5rem;
+            width: auto;
+            line-height: 1.7;
+        }
+
+        .slide-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(3rem, 7vw, 6rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.05;
+            color: var(--ink);
+            margin-bottom: 1.5rem;
+        }
+
+        /* ── PROBLEM STATEMENT ── */
+
+        .pillars-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        .pillar-card {
+            background: rgba(14, 15, 17, 0.03);
+            border: 1px solid rgba(14, 15, 17, 0.1);
+            border-left: 3px solid var(--signal);
+            border-radius: 8px;
+            padding: 1.75rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .pillar-card:hover {
+            transform: translateY(-2px);
+            background: rgba(14, 15, 17, 0.05);
+        }
+
+        .pillar-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 3rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            color: var(--signal);
+        }
+
+        .pillar-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 3vw, 2rem);
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: -0.02em;
+        }
+
+        .pillar-desc {
+            font-size: clamp(0.9rem, 1.1vw, 1.02rem);
+            line-height: 1.55;
+            color: rgba(14, 15, 17, 0.65);
+        }
+
+        /* ── ARCHITECTURE PIPELINE ── */
+        .pipeline-strip {
+            display: flex;
+            align-items: stretch;
+            gap: 0.6rem;
+            margin: 1.5rem 0 2rem;
+        }
+
+        .pipe-node {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 1.1rem 0.6rem;
+            background: rgba(14, 15, 17, 0.03);
+            border: 1px solid rgba(14, 15, 17, 0.12);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+        }
+
+        .pipe-node:hover {
+            background: rgba(0, 200, 150, 0.06);
+            border-color: rgba(0, 200, 150, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .pipe-node.active {
+            background: rgba(0, 200, 150, 0.1);
+            border-color: var(--signal);
+            box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.15);
+        }
+
+        .pipe-node.active .pipe-name {
+            color: var(--ink);
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.15);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(0, 200, 150, 0.25);
+            }
+        }
+
+        .pipe-node.active {
+            animation: pulse-glow 2.4s ease-in-out infinite;
+        }
+
+        .pipe-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: var(--signal);
+        }
+
+        .pipe-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(0.82rem, 1.05vw, 1rem);
+            font-weight: 600;
+            color: rgba(14, 15, 17, 0.85);
+            line-height: 1.25;
+        }
+
+        .pipe-arrow {
+            flex: 0 0 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(14, 15, 17, 0.35);
+            font-size: 1.3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pipe-arrow::before {
+            content: '';
+            position: absolute;
+            inset: 50% 0 auto 0;
+            height: 2px;
+            transform: translateY(-50%);
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    var(--signal) 50%,
+                    transparent 100%);
+            background-size: 200% 100%;
+            opacity: 0.45;
+            animation: flow 2.4s linear infinite;
+        }
+
+        .pipe-arrow span {
+            position: relative;
+            z-index: 1;
+            background: var(--paper);
+            padding: 0 0.15rem;
+        }
+
+        @keyframes flow {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: -100% 0;
+            }
+        }
+
+        /* ── DETAIL PANEL ── */
+        .pipe-detail {
+            background: rgba(14, 15, 17, 0.04);
+            border: 1px solid rgba(14, 15, 17, 0.1);
+            border-left: 3px solid var(--signal);
+            border-radius: 10px;
+            padding: 1.75rem 2rem;
+            min-height: 180px;
+            animation: fade-in 0.4s ease;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pipe-detail-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 0.6rem;
+            letter-spacing: -0.02em;
+        }
+
+        .pipe-detail-desc {
+            font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+            color: rgba(14, 15, 17, 0.72);
+            line-height: 1.65;
+            margin-bottom: 1.1rem;
+            max-width: 85ch;
+        }
+
+        .pipe-detail-tools {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .pipe-tool {
+            background: rgba(0, 200, 150, 0.1);
+            color: #00875f;
+            border: 1px solid rgba(0, 200, 150, 0.3);
+            border-radius: 20px;
+            padding: 0.32rem 0.9rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: 0.02em;
+        }
+
+        /* ── MATURITY LADDER ── */
+        .ladder {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-top: 1rem;
+        }
+
+        .ladder-step {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 1.1rem 1.75rem;
+            background: rgba(14, 15, 17, 0.03);
+            border: 1px solid rgba(14, 15, 17, 0.1);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        /* Subtle stair-step indentation */
+        .ladder-step:nth-child(1) {
+            margin-left: 0%;
+        }
+
+        .ladder-step:nth-child(2) {
+            margin-left: 2%;
+        }
+
+        .ladder-step:nth-child(3) {
+            margin-left: 4%;
+        }
+
+        .ladder-step:nth-child(4) {
+            margin-left: 6%;
+        }
+
+        .ladder-step:nth-child(5) {
+            margin-left: 8%;
+        }
+
+        .ladder-step.achieved {
+            background: rgba(0, 200, 150, 0.06);
+            border-color: rgba(0, 200, 150, 0.25);
+        }
+
+        .ladder-step.current {
+            background: rgba(0, 200, 150, 0.1);
+            border-color: var(--signal);
+            border-left: 4px solid var(--signal);
+            box-shadow: 0 4px 16px rgba(0, 200, 150, 0.12);
+        }
+
+        .ladder-step.planned {
+            background: rgba(14, 15, 17, 0.015);
+            border-style: dashed;
+            border-color: rgba(14, 15, 17, 0.2);
+        }
+
+        .ladder-indicator {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .ladder-step.achieved .ladder-indicator,
+        .ladder-step.current .ladder-indicator {
+            background: var(--signal);
+            color: var(--paper);
+        }
+
+        .ladder-step.current .ladder-indicator {
+            animation: pulse-step 2.4s ease-in-out infinite;
+        }
+
+        .ladder-step.planned .ladder-indicator {
+            background: transparent;
+            border: 2px solid rgba(14, 15, 17, 0.25);
+            color: rgba(14, 15, 17, 0.5);
+        }
+
+        @keyframes pulse-step {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(0, 200, 150, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 0 9px rgba(0, 200, 150, 0.3);
+            }
+        }
+
+        .ladder-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .ladder-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1rem, 1.4vw, 1.3rem);
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .ladder-step.planned .ladder-name {
+            color: rgba(14, 15, 17, 0.55);
+        }
+
+        .ladder-desc {
+            font-size: clamp(0.82rem, 1vw, 0.95rem);
+            color: rgba(14, 15, 17, 0.65);
+            line-height: 1.5;
+        }
+
+        .ladder-status {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            padding: 0.35rem 0.85rem;
+            border-radius: 20px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .ladder-status.done {
+            background: rgba(0, 200, 150, 0.15);
+            color: #00875f;
+            border: 1px solid rgba(0, 200, 150, 0.3);
+        }
+
+        .ladder-status.here {
+            background: var(--signal);
+            color: var(--paper);
+        }
+
+        .ladder-status.next {
+            background: rgba(245, 166, 35, 0.12);
+            color: #a06d10;
+            border: 1px solid rgba(245, 166, 35, 0.35);
+        }
+
+        .ladder-status.future {
+            background: transparent;
+            color: rgba(14, 15, 17, 0.45);
+            border: 1px dashed rgba(14, 15, 17, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="deck">
+
+        <!-- SLIDE 1: TITLE -->
+        <div class="slide slide-1 active">
+            <div class="hero-tag">Dagster Machine Learning Operation Orchestrator</div>
+            <p class="hero-sub">
+                Future Technologies Development Center
+            </p>
+        </div>
+
+        <!-- SLIDE 2: PROBLEM STATEMENT -->
+        <div class="slide slide-2">
+            <div class="slide-title">Problem Statement</div>
+            <p class="hero-sub">
+                Build an MLOps orchestrator able to meet four non-negotiable requirements across
+                the entire ML lifecycle.
+            </p>
+
+            <div class="pillars-grid">
+                <div class="pillar-card">
+                    <span class="pillar-num">01</span>
+                    <span class="pillar-name">Scalable</span>
+                    <span class="hero-sub">
+                        Supports growing data volumes and an expanding portfolio of models without
+                        redesigning the pipeline.
+                    </span>
+                </div>
+
+                <div class="pillar-card">
+                    <span class="pillar-num">02</span>
+                    <span class="pillar-name">Reproducible</span>
+                    <span class="hero-sub">
+                        Every experiment and run can be repeated with identical inputs, code, and
+                        configurations.
+                    </span>
+                </div>
+
+                <div class="pillar-card">
+                    <span class="pillar-num">03</span>
+                    <span class="pillar-name">Observable</span>
+                    <span class="hero-sub">
+                        Pipeline state, data quality, and model health are visible and traceable at
+                        every stage.
+                    </span>
+                </div>
+
+                <div class="pillar-card">
+                    <span class="pillar-num">04</span>
+                    <span class="pillar-name">Explainable</span>
+                    <span class="hero-sub">
+                        Model decisions and pipeline behavior can be audited and communicated to
+                        stakeholders.
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: PROPOSED SOLUTION -->
+        <div class="slide slide-3">
+            <div class="slide-title">Proposed Solution</div>
+            <p class="hero-sub">
+                A Dagster-based Machine Learning Operation Orchestrator that treats every stage of the
+                ML lifecycle as a modular, independently versioned asset, with native support for
+                tracking, validation, and debugging.
+            </p>
+
+            <div class="pillars-grid">
+                <div class="pillar-card">
+                    <span class="pillar-num">01</span>
+                    <span class="pillar-name">Modular Assets</span>
+                    <span class="hero-sub">
+                        Decompose the ML lifecycle into reusable, independently versioned components.
+                    </span>
+                </div>
+
+                <div class="pillar-card">
+                    <span class="pillar-num">02</span>
+                    <span class="pillar-name">Asset-Based Workflow</span>
+                    <span class="hero-sub">
+                        Each pipeline stage is a distinct asset, easy to manage, extend, and maintain.
+                    </span>
+                </div>
+
+                <div class="pillar-card">
+                    <span class="pillar-num">03</span>
+                    <span class="pillar-name">Step-Level Tracking</span>
+                    <span class="hero-sub">
+                        Track exactly what happened at each step and validate runs against expectations.
+                    </span>
+                </div>
+
+                <div class="pillar-card">
+                    <span class="pillar-num">04</span>
+                    <span class="pillar-name">Logging & Metadata</span>
+                    <span class="hero-sub">
+                        Debug workflows through comprehensive logs and rich metadata at every step.
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: ARCHITECTURE -->
+        <div class="slide slide-4">
+            <div class="slide-title">Architecture</div>
+            <p class="slide-intro">
+                Six modular stages, each implemented as an independently versioned Dagster asset.
+                Click any stage to explore its role in the orchestrator.
+            </p>
+
+            <div class="pipeline-strip" id="pipelineStrip">
+                <div class="pipe-node" data-stage="0">
+                    <span class="pipe-num">01</span>
+                    <span class="pipe-name">Data Ingestion</span>
+                </div>
+                <div class="pipe-arrow"><span>›</span></div>
+
+                <div class="pipe-node" data-stage="1">
+                    <span class="pipe-num">02</span>
+                    <span class="pipe-name">Data Transformation</span>
+                </div>
+                <div class="pipe-arrow"><span>›</span></div>
+
+                <div class="pipe-node" data-stage="2">
+                    <span class="pipe-num">03</span>
+                    <span class="pipe-name">Model Training</span>
+                </div>
+                <div class="pipe-arrow"><span>›</span></div>
+
+                <div class="pipe-node" data-stage="3">
+                    <span class="pipe-num">04</span>
+                    <span class="pipe-name">Model Evaluation</span>
+                </div>
+                <div class="pipe-arrow"><span>›</span></div>
+
+                <div class="pipe-node" data-stage="4">
+                    <span class="pipe-num">05</span>
+                    <span class="pipe-name">Model Registration</span>
+                </div>
+                <div class="pipe-arrow"><span>›</span></div>
+
+                <div class="pipe-node" data-stage="5">
+                    <span class="pipe-num">06</span>
+                    <span class="pipe-name">Model Deployment</span>
+                </div>
+            </div>
+
+            <div class="pipe-detail" id="pipeDetail">
+                <div class="pipe-detail-name" id="pipeDetailName"></div>
+                <div class="pipe-detail-desc" id="pipeDetailDesc"></div>
+                <div class="pipe-detail-tools" id="pipeDetailTools"></div>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: NEXT STEPS -->
+        <div class="slide slide-5">
+            <div class="slide-title">Next Steps</div>
+            <p class="slide-intro">
+                The orchestrator is built to grow. Each level on the maturity ladder unlocks new
+                autonomous capabilities, taking us closer to a fully self-managing ML platform.
+            </p>
+
+            <div class="ladder">
+                <div class="ladder-step achieved">
+                    <div class="ladder-indicator">01</div>
+                    <div class="ladder-content">
+                        <div class="ladder-name">Foundational</div>
+                        <div class="ladder-desc">
+                            Manual pipeline orchestration with basic versioning and reproducible runs.
+                        </div>
+                    </div>
+                    <div class="ladder-status done">Achieved</div>
+                </div>
+
+                <div class="ladder-step achieved">
+                    <div class="ladder-indicator">02</div>
+                    <div class="ladder-content">
+                        <div class="ladder-name">Operational</div>
+                        <div class="ladder-desc">
+                            Automated asset-based workflows, scheduled training, and end-to-end observability.
+                        </div>
+                    </div>
+                    <div class="ladder-status done">Achieved</div>
+                </div>
+
+                <div class="ladder-step current">
+                    <div class="ladder-indicator">03</div>
+                    <div class="ladder-content">
+                        <div class="ladder-name">Adaptive</div>
+                        <div class="ladder-desc">
+                            Drift-triggered retraining, multi-model support, and automated quality gates.
+                        </div>
+                    </div>
+                    <div class="ladder-status here">You are here</div>
+                </div>
+
+                <div class="ladder-step planned">
+                    <div class="ladder-indicator">04</div>
+                    <div class="ladder-content">
+                        <div class="ladder-name">Self-Healing</div>
+                        <div class="ladder-desc">
+                            Automatic rollback, failure recovery, and seamless multi-environment promotion.
+                        </div>
+                    </div>
+                    <div class="ladder-status next">Planned</div>
+                </div>
+
+                <div class="ladder-step planned">
+                    <div class="ladder-indicator">05</div>
+                    <div class="ladder-content">
+                        <div class="ladder-name">Autonomous</div>
+                        <div class="ladder-desc">
+                            Continuous learning, automated model selection, A/B testing, and full self-management.
+                        </div>
+                    </div>
+                    <div class="ladder-status future">Future</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: END -->
+        <div class="slide slide-6">
+            <div class="hero-tag">Thanks a lot!</div>
+        </div>
+
+    </div>
+
+    <!-- NAVIGATION CONTROLS -->
+    <div class="nav">
+        <button class="nav-btn" id="prevBtn">‹</button>
+        <div class="nav-dots" id="dots"></div>
+        <span class="slide-counter" id="counter">01 / 02</span>
+        <button class="nav-btn" id="nextBtn">›</button>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const dotsContainer = document.getElementById('dots');
+        const counter = document.getElementById('counter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        let current = 0;
+
+        // Build dots
+        slides.forEach((_, i) => {
+            const dot = document.createElement('div');
+            dot.className = 'dot' + (i === 0 ? ' active' : '');
+            dot.addEventListener('click', () => goTo(i));
+            dotsContainer.appendChild(dot);
+        });
+
+        const dots = document.querySelectorAll('.dot');
+
+        function goTo(index) {
+            slides[current].classList.remove('active');
+            dots[current].classList.remove('active');
+            current = (index + slides.length) % slides.length;
+            slides[current].classList.add('active');
+            dots[current].classList.add('active');
+            counter.textContent =
+                String(current + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+        }
+
+        prevBtn.addEventListener('click', () => goTo(current - 1));
+        nextBtn.addEventListener('click', () => goTo(current + 1));
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') goTo(current + 1);
+            if (e.key === 'ArrowLeft') goTo(current - 1);
+        });
+
+        // ── ARCHITECTURE PIPELINE ──
+        const pipelineStages = [
+            {
+                name: 'Data Ingestion',
+                desc: 'Raw data is pulled from source systems and loaded into the orchestrator. Each ingestion run is versioned and traceable, so downstream stages always know exactly which data they consumed.',
+                tools: ['DuckDB', 'Dagster IO Managers', 'Partitioned Assets']
+            },
+            {
+                name: 'Data Transformation',
+                desc: 'Raw data is cleaned, validated, and feature-engineered into model-ready datasets. Data quality checks run inline and surface anomalies before they reach training.',
+                tools: ['Pandas', 'Schema Validation', 'Quality Checks']
+            },
+            {
+                name: 'Model Training',
+                desc: 'Models are trained on the engineered features with hyperparameters, run configurations, and training metadata captured automatically for every experiment.',
+                tools: ['scikit-learn', 'Experiment Tracking', 'Reproducible Runs']
+            },
+            {
+                name: 'Model Evaluation',
+                desc: 'Trained models are evaluated against accuracy and quality constraints. Only models that pass the evaluation gates move forward to registration.',
+                tools: ['Validation Metrics', 'Quality Gates', 'Performance Reports']
+            },
+            {
+                name: 'Model Registration',
+                desc: 'Approved models are registered with full version history and stage promotion (dev → prod), giving complete traceability from a deployed model back to its training run.',
+                tools: ['GTO', 'Model Registry', 'Version Control']
+            },
+            {
+                name: 'Model Deployment',
+                desc: 'Registered production models are promoted to serving for batch inference. Sensors continuously monitor model health and trigger retraining when drift or performance thresholds are crossed.',
+                tools: ['Dagster Sensors', 'Batch Inference', 'Auto-Retraining']
+            }
+        ];
+
+        const pipeNodes = document.querySelectorAll('.pipe-node');
+        const pipeDetailName = document.getElementById('pipeDetailName');
+        const pipeDetailDesc = document.getElementById('pipeDetailDesc');
+        const pipeDetailTools = document.getElementById('pipeDetailTools');
+        const pipeDetail = document.getElementById('pipeDetail');
+
+        function selectStage(index) {
+            pipeNodes.forEach(n => n.classList.remove('active'));
+            pipeNodes[index].classList.add('active');
+
+            const stage = pipelineStages[index];
+            pipeDetailName.textContent = stage.name;
+            pipeDetailDesc.textContent = stage.desc;
+            pipeDetailTools.innerHTML = stage.tools
+                .map(t => `<span class="pipe-tool">${t}</span>`)
+                .join('');
+
+            // Re-trigger fade animation
+            pipeDetail.style.animation = 'none';
+            pipeDetail.offsetHeight;  // force reflow
+            pipeDetail.style.animation = '';
+        }
+
+        pipeNodes.forEach((node, i) => {
+            node.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectStage(i);
+            });
+        });
+
+        // Initialize on first stage
+        selectStage(0);
+    </script>
+
+
+
+</body>
+
+</html>
