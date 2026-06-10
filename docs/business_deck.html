@@ -81,27 +81,27 @@
 
         /* ── SLIDE BACKGROUNDS ── */
         .slide-1 {
-            background-image: url('./documentation/figures/bitmap.png');
+            background-image: url('./documentation/figures/futecdevcenter_logo_square.png');
         }
 
         .slide-2 {
-            background-image: url('./documentation/figures/bitmap.png');
+            background-image: url('./documentation/figures/futecdevcenter_logo_square_2.png');
         }
 
         .slide-3 {
-            background-image: url('./documentation/figures/bitmap.png');
+            background-image: url('./documentation/figures/futecdevcenter_logo_square_2.png');
         }
 
         .slide-4 {
-            background-image: url('./documentation/figures/bitmap.png');
+            background-image: url('./documentation/figures/futecdevcenter_logo_square_2.png');
         }
 
         .slide-5 {
-            background-image: url('./documentation/figures/bitmap.png');
+            background-image: url('./documentation/figures/futecdevcenter_logo_square_2.png');
         }
 
         .slide-6 {
-            background-image: url('./documentation/figures/bitmap.png');
+            background-image: url('./documentation/figures/futecdevcenter_logo_square.png');
         }
 
         /* ── NAVIGATION ── */
@@ -296,7 +296,7 @@
 
         .pipe-num {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.7rem;
+            font-size: 1.5rem;
             font-weight: 700;
             letter-spacing: 0.15em;
             color: var(--signal);
@@ -304,7 +304,7 @@
 
         .pipe-name {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: clamp(0.82rem, 1.05vw, 1rem);
+            font-size: clamp(1rem, 1.2rem, 1.2rem);
             font-weight: 600;
             color: rgba(14, 15, 17, 0.85);
             line-height: 1.25;
@@ -315,7 +315,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: rgba(14, 15, 17, 0.35);
+            color: rgba(0, 0, 0, 0.35);
             font-size: 1.3rem;
             position: relative;
             overflow: hidden;
@@ -570,6 +570,124 @@
             color: rgba(14, 15, 17, 0.45);
             border: 1px dashed rgba(14, 15, 17, 0.25);
         }
+
+        /* ── FINAL SLIDE - RECAP IN NUMBERS ── */
+        .recap-numbers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1rem 0 3rem;
+        }
+
+        .recap-stat {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            position: relative;
+        }
+
+        .recap-stat:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: -0.5rem;
+            top: 25%;
+            bottom: 25%;
+            width: 1px;
+            background: rgba(14, 15, 17, 0.12);
+        }
+
+        .recap-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(4.5rem, 10vw, 9rem);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--signal) 0%, #00e5b0 50%, rgba(0, 200, 150, 0.55) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .recap-label {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(0.75rem, 1vw, 0.95rem);
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(14, 15, 17, 0.65);
+            margin-top: 1rem;
+            line-height: 1.35;
+        }
+
+        .recap-thanks {
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .recap-thanks-msg {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--ink);
+            margin-bottom: 0.75rem;
+        }
+
+        .recap-thanks-sub {
+            font-size: clamp(0.9rem, 1.15vw, 1.1rem);
+            color: rgba(14, 15, 17, 0.6);
+            letter-spacing: 0.05em;
+        }
+
+        .recap-thanks-sub .dot {
+            margin: 0 0.6rem;
+            color: var(--signal);
+            font-weight: 700;
+        }
+
+        /* Entry animations when slide becomes active */
+        @keyframes pop-in {
+            from {
+                opacity: 0;
+                transform: scale(0.5) translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-6.active .recap-stat:nth-child(1) .recap-num {
+            animation: pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+        }
+
+        .slide-6.active .recap-stat:nth-child(2) .recap-num {
+            animation: pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+        }
+
+        .slide-6.active .recap-stat:nth-child(3) .recap-num {
+            animation: pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both;
+        }
+
+        .slide-6.active .recap-stat:nth-child(4) .recap-num {
+            animation: pop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both;
+        }
+
+        .slide-6.active .recap-thanks {
+            animation: fade-up 0.7s ease 0.9s both;
+        }
     </style>
 </head>
 
@@ -580,8 +698,11 @@
         <!-- SLIDE 1: TITLE -->
         <div class="slide slide-1 active">
             <div class="hero-tag">Dagster Machine Learning Operation Orchestrator</div>
-            <p class="hero-sub">
+            <!-- <p class="hero-sub">
                 Future Technologies Development Center
+            </p> -->
+            <p class="hero-sub">
+                Ludwing Marenco
             </p>
         </div>
 
@@ -589,44 +710,41 @@
         <div class="slide slide-2">
             <div class="slide-title">Problem Statement</div>
             <p class="hero-sub">
-                Build an MLOps orchestrator able to meet four non-negotiable requirements across
-                the entire ML lifecycle.
+                Build an MLOps orchestrator that meets four non-negotiable requirements across the
+                entire ML lifecycle.
             </p>
 
             <div class="pillars-grid">
                 <div class="pillar-card">
-                    <span class="pillar-num">01</span>
+                    <span class="pillar-num">1</span>
                     <span class="pillar-name">Scalable</span>
                     <span class="hero-sub">
-                        Supports growing data volumes and an expanding portfolio of models without
-                        redesigning the pipeline.
+                        Easily integrates new business-technical requirements and supports portfolio expansion
+                        across clients and regions.
                     </span>
                 </div>
 
                 <div class="pillar-card">
-                    <span class="pillar-num">02</span>
+                    <span class="pillar-num">2</span>
                     <span class="pillar-name">Reproducible</span>
                     <span class="hero-sub">
-                        Every experiment and run can be repeated with identical inputs, code, and
-                        configurations.
+                        ML workflows can be reproduced end-to-end without limiting constraints.
                     </span>
                 </div>
 
                 <div class="pillar-card">
-                    <span class="pillar-num">03</span>
+                    <span class="pillar-num">3</span>
                     <span class="pillar-name">Observable</span>
                     <span class="hero-sub">
-                        Pipeline state, data quality, and model health are visible and traceable at
-                        every stage.
+                        Pipeline execution and model behavior are visible and traceable at every stage.
                     </span>
                 </div>
 
                 <div class="pillar-card">
-                    <span class="pillar-num">04</span>
+                    <span class="pillar-num">4</span>
                     <span class="pillar-name">Explainable</span>
                     <span class="hero-sub">
-                        Model decisions and pipeline behavior can be audited and communicated to
-                        stakeholders.
+                        Model decisions and pipeline behavior can be audited and communicated.
                     </span>
                 </div>
             </div>
@@ -643,32 +761,32 @@
 
             <div class="pillars-grid">
                 <div class="pillar-card">
-                    <span class="pillar-num">01</span>
+                    <span class="pillar-num">A</span>
                     <span class="pillar-name">Modular Assets</span>
                     <span class="hero-sub">
-                        Decompose the ML lifecycle into reusable, independently versioned components.
+                        Decompose the ML workflow into reusable, independently versioned components.
                     </span>
                 </div>
 
                 <div class="pillar-card">
-                    <span class="pillar-num">02</span>
-                    <span class="pillar-name">Asset-Based Workflow</span>
+                    <span class="pillar-num">B</span>
+                    <span class="pillar-name">End-to-End Traceability</span>
                     <span class="hero-sub">
-                        Each pipeline stage is a distinct asset, easy to manage, extend, and maintain.
+                        Every ML workflow cycle is fully versioned, from raw data to deployed model.
                     </span>
                 </div>
 
                 <div class="pillar-card">
-                    <span class="pillar-num">03</span>
-                    <span class="pillar-name">Step-Level Tracking</span>
+                    <span class="pillar-num">C</span>
+                    <span class="pillar-name">Automation</span>
                     <span class="hero-sub">
-                        Track exactly what happened at each step and validate runs against expectations.
+                        Retraining and serving tasks are triggered automatically based on monitoring decisions.
                     </span>
                 </div>
 
                 <div class="pillar-card">
-                    <span class="pillar-num">04</span>
-                    <span class="pillar-name">Logging & Metadata</span>
+                    <span class="pillar-num">D</span>
+                    <span class="pillar-name">Logging and Metadata</span>
                     <span class="hero-sub">
                         Debug workflows through comprehensive logs and rich metadata at every step.
                     </span>
@@ -679,45 +797,45 @@
         <!-- SLIDE 4: ARCHITECTURE -->
         <div class="slide slide-4">
             <div class="slide-title">Architecture</div>
-            <p class="slide-intro">
-                Six modular stages, each implemented as an independently versioned Dagster asset.
-                Click any stage to explore its role in the orchestrator.
+            <p class="hero-sub">
+                Centered on asset-based training and op-based serving, with each stage linked by automation sensors that
+                orchestrate the entire ML workflow.
             </p>
 
             <div class="pipeline-strip" id="pipelineStrip">
                 <div class="pipe-node" data-stage="0">
-                    <span class="pipe-num">01</span>
+                    <span class="pipe-num">1</span>
                     <span class="pipe-name">Data Ingestion</span>
                 </div>
                 <div class="pipe-arrow"><span>›</span></div>
 
                 <div class="pipe-node" data-stage="1">
-                    <span class="pipe-num">02</span>
-                    <span class="pipe-name">Data Transformation</span>
-                </div>
-                <div class="pipe-arrow"><span>›</span></div>
-
-                <div class="pipe-node" data-stage="2">
-                    <span class="pipe-num">03</span>
+                    <span class="pipe-num">2</span>
                     <span class="pipe-name">Model Training</span>
                 </div>
                 <div class="pipe-arrow"><span>›</span></div>
 
-                <div class="pipe-node" data-stage="3">
-                    <span class="pipe-num">04</span>
+                <div class="pipe-node" data-stage="2">
+                    <span class="pipe-num">3</span>
                     <span class="pipe-name">Model Evaluation</span>
                 </div>
                 <div class="pipe-arrow"><span>›</span></div>
 
-                <div class="pipe-node" data-stage="4">
-                    <span class="pipe-num">05</span>
+                <div class="pipe-node" data-stage="3">
+                    <span class="pipe-num">4</span>
                     <span class="pipe-name">Model Registration</span>
                 </div>
                 <div class="pipe-arrow"><span>›</span></div>
 
-                <div class="pipe-node" data-stage="5">
-                    <span class="pipe-num">06</span>
+                <div class="pipe-node" data-stage="4">
+                    <span class="pipe-num">5</span>
                     <span class="pipe-name">Model Deployment</span>
+                </div>
+                <div class="pipe-arrow"><span>›</span></div>
+
+                <div class="pipe-node" data-stage="5">
+                    <span class="pipe-num">6</span>
+                    <span class="pipe-name">Model Monitoring</span>
                 </div>
             </div>
 
@@ -731,62 +849,61 @@
         <!-- SLIDE 5: NEXT STEPS -->
         <div class="slide slide-5">
             <div class="slide-title">Next Steps</div>
-            <p class="slide-intro">
-                The orchestrator is built to grow. Each level on the maturity ladder unlocks new
-                autonomous capabilities, taking us closer to a fully self-managing ML platform.
+            <p class="hero-sub">
+                The maturity ladder guiding the orchestrator toward a fully self-managing ML platform.
             </p>
 
             <div class="ladder">
                 <div class="ladder-step achieved">
-                    <div class="ladder-indicator">01</div>
+                    <div class="ladder-indicator">1</div>
                     <div class="ladder-content">
                         <div class="ladder-name">Foundational</div>
                         <div class="ladder-desc">
-                            Manual pipeline orchestration with basic versioning and reproducible runs.
+                            Baseline orchestration architecture grounded in MLOps best practices.
                         </div>
                     </div>
                     <div class="ladder-status done">Achieved</div>
                 </div>
 
                 <div class="ladder-step achieved">
-                    <div class="ladder-indicator">02</div>
+                    <div class="ladder-indicator">2</div>
                     <div class="ladder-content">
                         <div class="ladder-name">Operational</div>
                         <div class="ladder-desc">
-                            Automated asset-based workflows, scheduled training, and end-to-end observability.
+                            Fully implemented end-to-end workflow covering model training, deployment, and monitoring.
                         </div>
                     </div>
                     <div class="ladder-status done">Achieved</div>
                 </div>
 
                 <div class="ladder-step current">
-                    <div class="ladder-indicator">03</div>
+                    <div class="ladder-indicator">3</div>
                     <div class="ladder-content">
-                        <div class="ladder-name">Adaptive</div>
+                        <div class="ladder-name">Scalable</div>
                         <div class="ladder-desc">
-                            Drift-triggered retraining, multi-model support, and automated quality gates.
+                            Ready to scale ML workflows across clients, regions, and model portfolios.
                         </div>
                     </div>
                     <div class="ladder-status here">You are here</div>
                 </div>
 
                 <div class="ladder-step planned">
-                    <div class="ladder-indicator">04</div>
+                    <div class="ladder-indicator">4</div>
                     <div class="ladder-content">
-                        <div class="ladder-name">Self-Healing</div>
+                        <div class="ladder-name">Integration</div>
                         <div class="ladder-desc">
-                            Automatic rollback, failure recovery, and seamless multi-environment promotion.
+                            Connect the orchestrator with DataOps and DevOps for fully integrated operations.
                         </div>
                     </div>
                     <div class="ladder-status next">Planned</div>
                 </div>
 
                 <div class="ladder-step planned">
-                    <div class="ladder-indicator">05</div>
+                    <div class="ladder-indicator">5</div>
                     <div class="ladder-content">
-                        <div class="ladder-name">Autonomous</div>
+                        <div class="ladder-name">Improvement</div>
                         <div class="ladder-desc">
-                            Continuous learning, automated model selection, A/B testing, and full self-management.
+                            Continuously incorporate new technical constraints and evolving business requirements.
                         </div>
                     </div>
                     <div class="ladder-status future">Future</div>
@@ -794,9 +911,36 @@
             </div>
         </div>
 
-        <!-- SLIDE 6: END -->
+        <!-- SLIDE 6: FINAL - RECAP IN NUMBERS -->
         <div class="slide slide-6">
-            <div class="hero-tag">Thanks a lot!</div>
+            <div class="recap-numbers">
+                <div class="recap-stat">
+                    <div class="recap-num">6</div>
+                    <div class="recap-label">Modular<br>Stages</div>
+                </div>
+                <div class="recap-stat">
+                    <div class="recap-num">4</div>
+                    <div class="recap-label">Automation<br>Sensors</div>
+                </div>
+                <div class="recap-stat">
+                    <div class="recap-num">3</div>
+                    <div class="recap-label">Drift<br>Signals</div>
+                </div>
+                <div class="recap-stat">
+                    <div class="recap-num">1</div>
+                    <div class="recap-label">Unified<br>Orchestrator</div>
+                </div>
+            </div>
+
+            <div class="recap-thanks">
+                <div class="recap-thanks-msg">Thanks a lot!</div>
+                <!-- <div class="recap-thanks-sub">
+                    Ludwing Marenco <span class="dot">·</span> Future Technologies Development Center
+                </div> -->
+                <div class="recap-thanks-sub">
+                    Ludwing Marenco
+                </div>
+            </div>
         </div>
 
     </div>
@@ -849,33 +993,33 @@
         const pipelineStages = [
             {
                 name: 'Data Ingestion',
-                desc: 'Raw data is pulled from source systems and loaded into the orchestrator. Each ingestion run is versioned and traceable, so downstream stages always know exactly which data they consumed.',
-                tools: ['DuckDB', 'Dagster IO Managers', 'Partitioned Assets']
-            },
-            {
-                name: 'Data Transformation',
-                desc: 'Raw data is cleaned, validated, and feature-engineered into model-ready datasets. Data quality checks run inline and surface anomalies before they reach training.',
-                tools: ['Pandas', 'Schema Validation', 'Quality Checks']
+                desc: 'Raw data is pulled from source systems through SQL queries, then loaded and processed. Train and test datasets are generated for each model option by the ML workflow as partitioned assets.',
+                tools: ['DuckDB', 'SQL', 'Dagster IO Managers', 'Partitioned Assets', 'Data Science']
             },
             {
                 name: 'Model Training',
-                desc: 'Models are trained on the engineered features with hyperparameters, run configurations, and training metadata captured automatically for every experiment.',
-                tools: ['scikit-learn', 'Experiment Tracking', 'Reproducible Runs']
+                desc: 'An ensemble of models is trained, each represented as a partitioned asset. The same asset definition serves different ML tasks and algorithms, all configured through a single config file.',
+                tools: ['Classical ML', 'Experiment Tracking', 'Reproducible Runs', 'Partitioned Assets']
             },
             {
                 name: 'Model Evaluation',
-                desc: 'Trained models are evaluated against accuracy and quality constraints. Only models that pass the evaluation gates move forward to registration.',
-                tools: ['Validation Metrics', 'Quality Gates', 'Performance Reports']
+                desc: 'Trained models are evaluated against the accuracy and quality constraints defined in the config file. Only models that pass the evaluation gates move forward to registration. A sensor re-triggers training when constraints are not met, iterating until an acceptable model is found.',
+                tools: ['Validation Metrics', 'Quality Gates', 'Automation']
             },
             {
                 name: 'Model Registration',
-                desc: 'Approved models are registered with full version history and stage promotion (dev → prod), giving complete traceability from a deployed model back to its training run.',
-                tools: ['GTO', 'Model Registry', 'Version Control']
+                desc: 'Approved ensemble of models is registered with full version history, giving complete traceability from a deployed model back to its training run.',
+                tools: ['Model Registry', 'Version Control', 'Automation']
             },
             {
                 name: 'Model Deployment',
-                desc: 'Registered production models are promoted to serving for batch inference. Sensors continuously monitor model health and trigger retraining when drift or performance thresholds are crossed.',
-                tools: ['Dagster Sensors', 'Batch Inference', 'Auto-Retraining']
+                desc: 'Once the full ensemble of models is registered, the serving batch pipeline is triggered for each batch as a partitioned op. A sensor continuously checks when the ensemble is ready for serving.',
+                tools: ['GTO', 'Partitioned Op', 'Automation']
+            },
+            {
+                name: 'Model Monitoring',
+                desc: 'A sensor continuously verifies that the serving pipeline was triggered and monitors serving data quality, feature drift, and prediction drift. Based on the combined status, it decides whether retraining is needed for each batch.',
+                tools: ['Automation', 'Performance Reports', 'Statistical Tests']
             }
         ];
 
